@@ -1,0 +1,19 @@
+# Fitness Tracker - Dependencias del proyecto
+# ===========================================
+
+# Framework web para el dashboard
+streamlit>=1.28.0
+
+# Librerías para gráficas y visualización
+plotly>=5.17.0
+pandas>=2.0.0
+
+# Librerías para APIs y conexiones HTTP
+requests>=2.31.0
+
+# Librerías para desarrollo y testing
+pytest>=7.4.0
+pytest-cov>=4.1.0
+
+# Librerías adicionales útiles
+python-dateutil>=2.8.0
