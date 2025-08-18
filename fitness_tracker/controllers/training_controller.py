@@ -3,7 +3,7 @@
 # Este archivo maneja la lógica de negocio para entrenamientos
 
 from models.training_model import TrainingModel
-from services.sport_api import SportAPI
+from services.training_api import TrainingAPI
 
 class TrainingController:
     """Controlador para manejar la lógica de entrenamientos"""
@@ -11,7 +11,7 @@ class TrainingController:
     def __init__(self):
         """Inicializar el controlador"""
         self.training_model = TrainingModel()
-        self.sport_api = SportAPI()
+        self.training_api = TrainingAPI()
     
     def add_training(self, activity, minutes):
         """Añadir un nuevo entrenamiento"""
@@ -24,7 +24,7 @@ class TrainingController:
                 return {'success': False, 'message': 'Los minutos deben estar entre 1 y 1440'}
             
             # Obtener calorías quemadas de la API
-            calories_burned = self.sport_api.get_calories_burned(activity, minutes)
+            calories_burned = self.training_api.get_calories_burned(activity, minutes)
             
             # Guardar en la base de datos
             training_id = self.training_model.add_training(activity, minutes, calories_burned)
@@ -96,7 +96,7 @@ class TrainingController:
     def get_activity_suggestions(self, query):
         """Obtener sugerencias de actividades"""
         try:
-            suggestions = self.sport_api.get_activity_suggestions(query)
+            suggestions = self.training_api.get_activity_suggestions(query)
             return {'success': True, 'data': suggestions}
         except Exception as e:
             return {'success': False, 'message': f'Error: {str(e)}'}
