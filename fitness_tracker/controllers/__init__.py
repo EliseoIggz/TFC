@@ -4,5 +4,6 @@
 
 from .training_controller import TrainingController
 from .nutrition_controller import NutritionController
+from .user_controller import UserController
 
 __all__ = ['TrainingController', 'NutritionController']

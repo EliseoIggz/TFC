@@ -9,6 +9,7 @@ from datetime import datetime, date
 import pandas as pd
 from controllers.training_controller import TrainingController
 from controllers.nutrition_controller import NutritionController
+from controllers.user_controller import UserController
 import config
 
 class DashboardView:
@@ -18,6 +19,7 @@ class DashboardView:
         """Inicializar la vista del dashboard"""
         self.training_controller = TrainingController()
         self.nutrition_controller = NutritionController()
+        self.user_controller = UserController()
         
         # Configurar página de Streamlit
         st.set_page_config(
@@ -32,8 +34,85 @@ class DashboardView:
         st.title("🏃‍♂️ Fitness Tracker")
         st.markdown("**Seguimiento de entrenamientos y nutrición**")
         
+        # Sección de bienvenida personalizada (cargar desde BD si no está en sesión)
+        if 'user_name' not in st.session_state or 'user_weight' not in st.session_state:
+            profile = self.user_controller.get_profile()
+            if profile['success']:
+                st.session_state['user_name'] = profile['data']['name']
+                st.session_state['user_weight'] = profile['data']['weight']
+        
+        # Obtener valores actuales de la sesión
+        user_name = st.session_state.get('user_name', '')
+        user_weight = st.session_state.get('user_weight', 70.0)
+        
+        # Debug: mostrar valores cargados
+        if st.session_state.get('debug_profile', False):
+            st.info(f"🔍 Debug - Nombre: '{user_name}', Peso: {user_weight}kg")
+        
+        if user_name:            
+            # Mostrar información del usuario en el dashboard principal
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("👤 Usuario", user_name)
+            with col2:
+                st.metric("⚖️ Peso", f"{user_weight} kg")
+                
+            st.divider()
+        
         # Sidebar para formularios
         with st.sidebar:
+            # Sección de perfil del usuario
+            st.header("👤 Mi Perfil")
+            
+            # Campo para nombre
+            user_name = st.text_input(
+                "Nombre:",
+                value=st.session_state.get('user_name', ''),
+                placeholder="Tu nombre",
+                key="user_name_input"
+            )
+            
+            # Campo para peso
+            user_weight = st.number_input(
+                "Peso (kg):",
+                min_value=30.0,
+                max_value=200.0,
+                value=st.session_state.get('user_weight', 70.0),
+                step=0.5,
+                key="user_weight_input"
+            )
+            
+            # Guardar automáticamente en BD cuando cambien los valores
+            current_name = st.session_state.get('user_name', '')
+            current_weight = st.session_state.get('user_weight', 70.0)
+            
+            if user_name != current_name or user_weight != current_weight:
+                # Guardar automáticamente en la base de datos
+                result = self.user_controller.save_profile(user_name, user_weight)
+                if result['success']:
+                    # Actualizar la sesión inmediatamente
+                    st.session_state['user_name'] = user_name
+                    st.session_state['user_weight'] = user_weight
+                    st.success("✅ Perfil actualizado automáticamente")
+                    # Pequeña pausa para mostrar el mensaje
+                    import time
+                    time.sleep(0.5)
+                    st.rerun()
+                else:
+                    st.error(f"❌ Error al guardar: {result['message']}")
+            
+            # Mostrar información del usuario
+            if user_name:
+                st.success(f"👋 ¡Hola {user_name}!")
+                st.info(f"⚖️ Tu peso: {user_weight} kg")
+            
+            # Botón de debug temporal
+            if st.button("🔍 Debug perfil", key="debug_profile_btn"):
+                st.session_state.debug_profile = not st.session_state.get('debug_profile', False)
+                st.rerun()
+            
+            st.divider()
+            
             st.header("📝 Añadir Registro")
             
             # Tabs para diferentes tipos de registro
@@ -181,19 +260,109 @@ class DashboardView:
         """Renderizar formulario para añadir entrenamiento"""
         st.subheader("Nuevo Entrenamiento")
         
-        activity = st.text_input("Actividad", placeholder="Ej: running, gym, yoga...")
-        minutes = st.number_input("Minutos", min_value=1, max_value=1440, value=30)
+        # Selector de categoría de deporte
+        training_api = self.training_controller.training_api
+        categories = training_api.get_sport_categories()
         
+        # Crear lista de categorías con nombres legibles
+        category_names = {
+            'deporte_equipo': '🏀 Deportes de Equipo',
+            'deporte_raqueta': '🎾 Deportes de Raqueta',
+            'deporte_acuatico': '🏊‍♂️ Deportes Acuáticos',
+            'deporte_invierno': '⛷️ Deportes de Invierno',
+            'deporte_combate': '🥊 Deportes de Combate',
+            'deporte_resistencia': '🏃‍♂️ Deportes de Resistencia',
+            'deporte_fuerza': '💪 Deportes de Fuerza',
+            'deporte_aventura': '🧗‍♂️ Deportes de Aventura',
+            'deporte_baile': '💃 Deportes de Baile',
+            'deporte_precision': '🎯 Deportes de Precisión',
+            'fitness': '🧘‍♀️ Fitness',
+            'ejercicio_fuerza': '🏋️ Ejercicios de Fuerza',
+            'actividad_diaria': '🚶‍♂️ Actividades Diarias',
+            'deporte_extremo': '🪂 Deportes Extremos',
+            'deporte_motor': '🏍️ Deportes Motorizados',
+            'deporte_tradicional': '🏺 Deportes Tradicionales',
+            'deporte_acuatico_extremo': '🏄‍♂️ Deportes Acuáticos Extremos',
+            'deporte_invierno_extremo': '🎿 Deportes de Invierno Extremos'
+        }
+        
+        # Selector de categoría
+        selected_category = st.selectbox(
+            "🏷️ Categoría de Deporte:",
+            options=['Todas'] + list(categories.keys()),
+            format_func=lambda x: category_names.get(x, x) if x != 'Todas' else 'Todas'
+        )
+        
+        # Filtrar deportes por categoría seleccionada
+        if selected_category == 'Todas':
+            available_sports = training_api.get_all_sports()
+        else:
+            available_sports = []
+            for sport in training_api.get_all_sports():
+                if sport['category'] == selected_category:
+                    available_sports.append(sport)
+        
+        # Selector de deporte específico
+        if available_sports:
+            sport_options = {f"{sport['name']} ({sport['met']} MET)": sport['key'] for sport in available_sports}
+            selected_sport_key = st.selectbox(
+                "🏃‍♂️ Selecciona el Deporte:",
+                options=list(sport_options.keys()),
+                help="Cada deporte muestra su valor MET para cálculo de calorías"
+            )
+            selected_sport = sport_options[selected_sport_key]
+        else:
+            selected_sport = ""
+            st.warning("No hay deportes disponibles en esta categoría")
+        
+        # Campo de minutos
+        minutes = st.number_input("⏱️ Minutos", min_value=1, max_value=1440, value=30)
+        
+        # Mostrar información del deporte seleccionado
+        if selected_sport and selected_sport in training_api.sports_database:
+            sport_data = training_api.sports_database[selected_sport]
+            st.info(f"📊 **{sport_data['name']}**: {sport_data['met']} MET - {sport_data['category']}")
+            
+            # Obtener peso del usuario desde session_state
+            user_weight = st.session_state.get('user_weight', 70.0)
+            
+            # Calcular calorías estimadas para el peso real del usuario
+            estimated_calories = round((sport_data['met'] * user_weight * minutes) / 60)
+            st.success(f"🔥 Calorías estimadas: {estimated_calories} cal en {minutes} min (peso: {user_weight} kg)")
+            
+            # Mostrar diferencia si el peso cambió del valor por defecto
+            if user_weight != 70.0:
+                default_calories = round((sport_data['met'] * 70 * minutes) / 60)
+                difference = estimated_calories - default_calories
+                if difference != 0:
+                    st.info(f"📊 Diferencia con peso por defecto (70kg): {difference:+d} cal")
+        
+        # Botón para añadir entrenamiento
         if st.button("🏃‍♂️ Añadir Entrenamiento", type="primary"):
-            if activity and minutes:
-                result = self.training_controller.add_training(activity, minutes)
+            if selected_sport and minutes:
+                # Obtener peso del usuario desde session_state
+                user_weight = st.session_state.get('user_weight', 70.0)
+                
+                result = self.training_controller.add_training(selected_sport, minutes, user_weight)
                 if result['success']:
                     st.success(result['message'])
                     st.rerun()
                 else:
                     st.error(result['message'])
             else:
-                st.warning("Por favor completa todos los campos")
+                st.warning("Por favor selecciona un deporte y especifica los minutos")
+        
+        # Mostrar estadísticas de la base de datos
+        st.divider()
+        st.markdown("**📊 Estadísticas de la Base de Datos:**")
+        total_sports = len(training_api.sports_database)
+        total_categories = len(categories)
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            st.metric("Total Deportes", total_sports)
+        with col2:
+            st.metric("Total Categorías", total_categories)
     
     def _render_calories_chart(self):
         """Renderizar gráfica de calorías consumidas vs quemadas"""

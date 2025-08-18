@@ -52,6 +52,17 @@ class Database:
                 created_at TEXT NOT NULL
             )
         ''')
+
+        # Perfil de usuario (persistencia de nombre y peso)
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS user_profile (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                name TEXT,
+                weight REAL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+        ''')
         
         self.conn.commit()
     

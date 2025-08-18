@@ -1,232 +1,313 @@
-# 🌐 Sistema Bilingüe Español-Inglés - Fitness Tracker
+# 🌍 Fitness Tracker - Sistema Bilingüe Completo
 
-## Descripción
+## 📋 Descripción
 
-El **Sistema Bilingüe** resuelve automáticamente el problema de idioma entre tu aplicación (español) y la API de ExerciseDB (inglés). Ahora puedes usar nombres de actividades en español y la API funcionará perfectamente.
+**Fitness Tracker** ahora incluye un **Sistema Bilingüe Completo** que permite usar la aplicación tanto en **español** como en **inglés** sin necesidad de APIs externas.
 
-## ✨ **Características Principales**
+## ✨ Características del Sistema Bilingüe
 
-### 🔄 **Traducción Automática**
-- **Español → Inglés**: Para búsquedas en la API
-- **Inglés → Español**: Para resultados en tu interfaz
-- **69 mapeos** predefinidos de actividades deportivas
-- **Traducción inteligente** sin pérdida de funcionalidad
+- **🌍 Soporte Dual**: Español e Inglés nativos
+- **🏃‍♂️ 251 Deportes**: Disponibles en ambos idiomas
+- **🔍 Búsqueda Inteligente**: Encuentra deportes en cualquier idioma
+- **💪 Cálculos Precisos**: Valores MET verificados para cada deporte
+- **🚀 Sin Dependencias**: Base de datos local 100% funcional
+- **⚡ Respuesta Instantánea**: Sin latencia de red
 
-### 🎯 **Actividades Soportadas**
+## 🎯 Cómo Funciona
 
-#### **🏃‍♂️ Cardiovasculares**
-- `correr` → `running`
-- `caminar` → `walking`
-- `ciclismo` → `cycling`
-- `natación` → `swimming`
-- `fútbol` → `football`
-- `baloncesto` → `basketball`
-- `tenis` → `tenis`
-- `boxeo` → `boxing`
-- `baile` → `dancing`
-- `senderismo` → `hiking`
+### Sistema de Nombres Duplicados
+En lugar de traducir, la base de datos incluye **variantes nativas** de cada deporte:
 
-#### **💪 Fuerza y Musculación**
-- `gimnasio` → `gym`
-- `pesas` → `weightlifting`
-- `sentadillas` → `squats`
-- `flexiones` → `push-ups`
-- `dominadas` → `pull-ups`
-- `plancha` → `plank`
-- `abdominales` → `crunches`
-
-#### **🧘‍♀️ Flexibilidad y Bienestar**
-- `yoga` → `yoga`
-- `pilates` → `pilates`
-- `estiramientos` → `stretching`
-- `tai chi` → `tai chi`
-- `meditación` → `meditation`
-
-#### **🏋️ Equipamiento**
-- `mancuernas` → `dumbbells`
-- `barra` → `barbell`
-- `máquina` → `machine`
-- `peso corporal` → `body weight`
-- `bandas elásticas` → `resistance bands`
-
-## 🚀 **Cómo Funciona**
-
-### 1. **Entrada en Español**
 ```python
-# Tu app envía actividades en español
-calories = training_api.get_calories_burned("correr", 30, 75.0)
+# Ejemplos de variantes bilingües
+'fútbol': {'name': 'Fútbol', 'met': 8.0, 'category': 'deporte_equipo', 'intensity': 'alta'},
+'soccer': {'name': 'Soccer', 'met': 8.0, 'category': 'deporte_equipo', 'intensity': 'alta'},
+
+'tenis': {'name': 'Tenis', 'met': 7.0, 'category': 'deporte_raqueta', 'intensity': 'alta'},
+'tennis': {'name': 'Tennis', 'met': 7.0, 'category': 'deporte_raqueta', 'intensity': 'alta'},
+
+'yoga': {'name': 'Yoga', 'met': 2.5, 'category': 'fitness', 'intensity': 'baja'},
+# Yoga es igual en ambos idiomas
 ```
 
-### 2. **Traducción Automática**
+### Búsqueda Inteligente
+La API encuentra deportes independientemente del idioma usado:
+
 ```python
-# La API traduce internamente
-🌐 Traducción: 'correr' → 'running'
+# Todas estas búsquedas funcionan:
+api.get_calories_burned("fútbol", 30, 70)      # ✅ Español
+api.get_calories_burned("soccer", 30, 70)      # ✅ Inglés
+api.get_calories_burned("tenis", 30, 70)       # ✅ Español
+api.get_calories_burned("tennis", 30, 70)      # ✅ Inglés
+api.get_calories_burned("yoga", 30, 70)        # ✅ Ambos idiomas
 ```
 
-### 3. **Búsqueda en la API**
-```python
-# Busca en ExerciseDB usando el nombre en inglés
-# Obtiene datos reales de la API
-```
+## 🏃‍♂️ Deportes Disponibles por Idioma
 
-### 4. **Resultado en Español**
-```python
-# Devuelve el resultado en tu idioma preferido
-📊 correr (30 min): 337 calorías | Intensidad: high
-```
+### 🇪🇸 **Deportes en Español**
+- **Deportes de Equipo**: Fútbol, Baloncesto, Voleibol, Balonmano
+- **Deportes de Combate**: Boxeo, Karate, Judo, Taekwondo
+- **Deportes de Resistencia**: Correr, Ciclismo, Maratón, Triatlón
+- **Deportes de Fuerza**: Halterofilia, Calistenia, CrossFit
+- **Deportes de Aventura**: Escalada, Senderismo, Montañismo
+- **Deportes de Baile**: Salsa, Flamenco, Tango, Zumba
+- **Deportes Tradicionales**: Pelota Vasca, Lucha Canaria, Calva
 
-## 📖 **Uso en tu Aplicación**
+### 🇺🇸 **Deportes en Inglés**
+- **Team Sports**: Soccer, Basketball, Volleyball, Handball
+- **Combat Sports**: Boxing, Karate, Judo, Taekwondo
+- **Endurance Sports**: Running, Cycling, Marathon, Triathlon
+- **Strength Sports**: Weightlifting, Calisthenics, CrossFit
+- **Adventure Sports**: Climbing, Hiking, Mountaineering
+- **Dance Sports**: Salsa, Flamenco, Tango, Zumba
+- **Traditional Sports**: Basque Pelota, Canarian Wrestling
 
-### **Cálculo de Calorías**
+### 🌍 **Deportes Universales**
+Algunos deportes mantienen el mismo nombre en ambos idiomas:
+- **Yoga**: Yoga (2.5 MET)
+- **Pilates**: Pilates (3.0 MET)
+- **MMA**: MMA (11.0 MET)
+- **CrossFit**: CrossFit (10.0 MET)
+
+## 📊 Ejemplos de Uso Bilingüe
+
+### 🎯 **Búsquedas en Español**
 ```python
 from services.training_api import TrainingAPI
 
-# Crear instancia de la API
-training_api = TrainingAPI()
+api = TrainingAPI()
 
-# Usar nombres en español - ¡Funciona automáticamente!
-activities = ["correr", "caminar", "gimnasio", "yoga"]
-minutes = 45
-weight = 80.0
+# Deportes de equipo
+calories_futbol = api.get_calories_burned("fútbol", 60, 70)
+calories_baloncesto = api.get_calories_burned("baloncesto", 45, 75)
 
-for activity in activities:
-    calories = training_api.get_calories_burned(activity, minutes, weight)
-    intensity = training_api.get_activity_intensity(activity)
-    print(f"{activity}: {calories} calorías | {intensity}")
+# Deportes de combate
+calories_boxeo = api.get_calories_burned("boxeo", 30, 80)
+calories_karate = api.get_calories_burned("karate", 60, 70)
+
+# Deportes de resistencia
+calories_correr = api.get_calories_burned("correr", 45, 70)
+calories_ciclismo = api.get_calories_burned("ciclismo", 90, 75)
 ```
 
-### **Búsqueda de Sugerencias**
+### 🎯 **Búsquedas en Inglés**
 ```python
-# Buscar ejercicios usando términos en español
-suggestions = training_api.get_activity_suggestions("pecho")
-print(f"Ejercicios de pecho: {suggestions}")
+# Team sports
+calories_soccer = api.get_calories_burned("soccer", 60, 70)
+calories_basketball = api.get_calories_burned("basketball", 45, 75)
 
-suggestions = training_api.get_activity_suggestions("cardio")
-print(f"Ejercicios cardio: {suggestions}")
+# Combat sports
+calories_boxing = api.get_calories_burned("boxing", 30, 80)
+calories_karate = api.get_calories_burned("karate", 60, 70)
+
+# Endurance sports
+calories_running = api.get_calories_burned("running", 45, 70)
+calories_cycling = api.get_calories_burned("cycling", 90, 75)
 ```
 
-### **Información de Intensidad**
+### 🎯 **Búsquedas Mixtas**
 ```python
-# Obtener intensidad de actividades en español
-intensity = training_api.get_activity_intensity("boxeo")
-print(f"Intensidad del boxeo: {intensity}")  # very_high
+# Puedes mezclar idiomas en la misma sesión
+calories_futbol = api.get_calories_burned("fútbol", 60, 70)      # Español
+calories_soccer = api.get_calories_burned("soccer", 60, 70)      # Inglés
+calories_yoga = api.get_calories_burned("yoga", 45, 65)          # Universal
+
+print(f"Fútbol: {calories_futbol} cal")
+print(f"Soccer: {calories_soccer} cal")
+print(f"Yoga: {calories_yoga} cal")
 ```
 
-## 🔧 **Personalización del Sistema Bilingüe**
+## 🔍 Funciones de Búsqueda Bilingüe
 
-### **Añadir Nuevas Traducciones**
+### 1. **Búsqueda por Categoría**
 ```python
-# En training_api.py, editar self.spanish_to_english_mapping
-self.spanish_to_english_mapping = {
-    # ... traducciones existentes ...
-    'tu_actividad': 'your_activity',
-    'otro_ejercicio': 'other_exercise'
+# Obtener todas las categorías
+categories = api.get_sport_categories()
+
+# Ejemplo de salida:
+# {
+#   'deporte_equipo': ['Fútbol', 'Soccer', 'Baloncesto', 'Basketball', ...],
+#   'deporte_combate': ['Boxeo', 'Boxing', 'Karate', 'Judo', ...],
+#   'deporte_resistencia': ['Correr', 'Running', 'Ciclismo', 'Cycling', ...]
+# }
+```
+
+### 2. **Búsqueda por Intensidad**
+```python
+# Deportes de alta intensidad
+high_intensity = api.get_sports_by_intensity("alta")
+# ['Fútbol', 'Soccer', 'Baloncesto', 'Basketball', 'Tenis', 'Tennis', ...]
+
+# Deportes de muy alta intensidad
+very_high = api.get_sports_by_intensity("muy_alta")
+# ['Boxeo', 'Boxing', 'MMA', 'Parkour Extremo', 'Extreme Parkour', ...]
+```
+
+### 3. **Búsqueda por Consulta**
+```python
+# Buscar deportes que contengan "cardio"
+cardio_sports = api.search_sports("cardio")
+# Encuentra deportes en ambos idiomas que coincidan
+
+# Buscar deportes de "equipo"
+team_sports = api.search_sports("equipo")
+# Encuentra deportes de equipo en español e inglés
+```
+
+## 🌟 Ventajas del Sistema Bilingüe
+
+### ✅ **Sin Traducción**
+- No hay pérdida de significado
+- Nombres nativos en cada idioma
+- Sin errores de traducción automática
+
+### ✅ **Flexibilidad Total**
+- Usa el idioma que prefieras
+- Cambia de idioma cuando quieras
+- Sin restricciones de idioma
+
+### ✅ **Cobertura Completa**
+- 251 deportes en ambos idiomas
+- Variantes nativas verificadas
+- Sin deportes "perdidos en traducción"
+
+### ✅ **Mantenimiento Fácil**
+- Agregar deportes en ambos idiomas
+- Sin dependencias de servicios de traducción
+- Control total sobre la base de datos
+
+## 🔧 Personalización Bilingüe
+
+### Agregar Nuevos Deportes Bilingües
+```python
+# En training_api.py, agregar variantes en ambos idiomas
+'nombre_español': {
+    'name': 'Nombre en Español',
+    'met': 7.0,
+    'category': 'categoria_deporte',
+    'intensity': 'moderada'
+},
+'english_name': {
+    'name': 'English Name',
+    'met': 7.0,
+    'category': 'categoria_deporte',
+    'intensity': 'moderada'
 }
 ```
 
-### **Traducciones Personalizadas**
+### Ejemplo Real
 ```python
-# Para actividades específicas de tu app
-custom_mappings = {
-    'mi_ejercicio': 'my_exercise',
-    'entrenamiento_personal': 'personal_training'
+# Agregar un nuevo deporte de aventura
+'escalada_libre': {
+    'name': 'Escalada Libre',
+    'met': 9.0,
+    'category': 'deporte_aventura',
+    'intensity': 'alta'
+},
+'free_climbing': {
+    'name': 'Free Climbing',
+    'met': 9.0,
+    'category': 'deporte_aventura',
+    'intensity': 'alta'
 }
-
-# Añadir al mapeo existente
-training_api.spanish_to_english_mapping.update(custom_mappings)
 ```
 
-## 📊 **Estadísticas del Sistema**
+## 📈 Estadísticas del Sistema Bilingüe
 
-- **Total de mapeos**: 69 actividades
-- **Categorías principales**: 8 (Cardio, Fuerza, Flexibilidad, etc.)
-- **Cobertura**: 95% de actividades deportivas comunes
-- **Extensible**: Fácil añadir nuevas traducciones
+### **Cobertura por Idioma**
+- **Español**: 251 deportes nativos
+- **Inglés**: 251 deportes nativos
+- **Total único**: 251 deportes (con variantes)
 
-## 🌟 **Ventajas del Sistema Bilingüe**
+### **Distribución por Categoría**
+- **Deportes de Equipo**: 13 deportes (26 variantes)
+- **Deportes Acuáticos**: 16 deportes (32 variantes)
+- **Deportes de Invierno**: 16 deportes (32 variantes)
+- **Deportes de Combate**: 15 deportes (30 variantes)
+- **Deportes de Resistencia**: 19 deportes (38 variantes)
 
-### **Para Desarrolladores**
-1. **No cambiar código existente** - Funciona con nombres en español
-2. **API real automática** - Traducción transparente
-3. **Fallback inteligente** - Datos locales si la API falla
-4. **Fácil mantenimiento** - Un solo lugar para traducciones
+### **Niveles de Intensidad**
+- **Muy baja**: 20 deportes (40 variantes)
+- **Baja**: 48 deportes (96 variantes)
+- **Moderada**: 63 deportes (126 variantes)
+- **Alta**: 102 deportes (204 variantes)
+- **Muy alta**: 18 deportes (36 variantes)
 
-### **Para Usuarios**
-1. **Interfaz en español** - Nombres familiares
-2. **Datos precisos** - API real de ExerciseDB
-3. **Experiencia consistente** - Mismo idioma en toda la app
-4. **Búsquedas naturales** - Términos en español funcionan
+## 🎯 Casos de Uso Bilingües
 
-## 🧪 **Testing del Sistema Bilingüe**
+### 🏫 **Educación Bilingüe**
+- Clases de educación física en español e inglés
+- Programas deportivos internacionales
+- Material educativo multilingüe
 
-Ejecuta el test incluido:
+### 🌍 **Aplicaciones Internacionales**
+- Apps de fitness para mercados globales
+- Plataformas deportivas multilingües
+- Sistemas de entrenamiento internacionales
 
+### 🏋️‍♂️ **Gimnasios Multiculturales**
+- Instructores que hablan diferentes idiomas
+- Clientes internacionales
+- Programas deportivos multilingües
+
+### 📱 **Desarrollo de Software**
+- APIs que soporten múltiples idiomas
+- Bases de datos deportivas internacionales
+- Sistemas de recomendación multilingües
+
+## 🧪 Testing del Sistema Bilingüe
+
+### Probar Búsquedas en Ambos Idiomas
 ```bash
 cd fitness_tracker
-python examples/test_bilingual.py
+python test_expanded_sports.py
 ```
 
-**Resultado esperado:**
-```
-🌐 Traducción: 'correr' → 'running'
-📊 correr (30 min): 337 calorías | Intensidad: high
-```
-
-## 🚨 **Solución de Problemas**
-
-### **Actividad no encontrada**
+### Probar Funcionalidades Específicas
 ```python
-# Si una actividad no está en el mapeo
-calories = training_api.get_calories_burned("actividad_nueva", 30, 70.0)
-# La API usará datos locales como fallback
+# Crear script de prueba bilingüe
+from services.training_api import TrainingAPI
+
+api = TrainingAPI()
+
+# Probar deportes en español
+spanish_sports = ['fútbol', 'baloncesto', 'tenis', 'yoga', 'boxeo']
+for sport in spanish_sports:
+    try:
+        calories = api.get_calories_burned(sport, 30, 70)
+        print(f"✅ {sport}: {calories} cal")
+    except ValueError as e:
+        print(f"❌ {sport}: {e}")
+
+# Probar deportes en inglés
+english_sports = ['soccer', 'basketball', 'tennis', 'yoga', 'boxing']
+for sport in english_sports:
+    try:
+        calories = api.get_calories_burned(sport, 30, 70)
+        print(f"✅ {sport}: {calories} cal")
+    except ValueError as e:
+        print(f"❌ {sport}: {e}")
 ```
 
-### **Traducción incorrecta**
-```python
-# Verificar traducción manualmente
-english = training_api._translate_activity_to_english("tu_actividad")
-print(f"Traducción: {english}")
-```
+## 🎉 Conclusión
 
-### **Añadir nueva traducción**
-```python
-# Añadir al mapeo en training_api.py
-'actividad_español': 'english_activity'
-```
+El **Sistema Bilingüe** de Fitness Tracker demuestra que es posible crear aplicaciones **profesionales y completas** sin depender de APIs externas:
 
-## 🔮 **Futuras Mejoras**
+- ✅ **Soporte completo** en español e inglés
+- ✅ **Base de datos local** con 251 deportes
+- ✅ **Sin dependencias** de servicios externos
+- ✅ **Rendimiento óptimo** sin latencia de red
+- ✅ **Mantenimiento fácil** y control total
 
-1. **API de traducción automática** (Google Translate, DeepL)
-2. **Aprendizaje automático** de nuevas traducciones
-3. **Soporte para más idiomas** (francés, alemán, etc.)
-4. **Sugerencias de traducción** para actividades desconocidas
+¡Perfecto para demostrar dominio de **desarrollo multilingüe** y **bases de datos locales** en tu trabajo! 🚀
 
-## 📞 **Soporte y Contribuciones**
+## 📞 Soporte
 
-### **Reportar Problemas**
-- Actividades que no se traduzcan correctamente
-- Sugerencias de nuevas traducciones
-- Mejoras en el sistema bilingüe
+Si tienes preguntas sobre el sistema bilingüe:
+- Revisa la documentación en `README.md`
+- Ejecuta las pruebas incluidas
+- Consulta el código fuente para ejemplos
 
-### **Contribuir Traducciones**
-```python
-# Enviar nuevas traducciones
-new_translations = {
-    'español': 'english',
-    'ejercicio': 'exercise'
-}
-```
+## 📄 Licencia
 
----
-
-## 🎯 **Resumen**
-
-El **Sistema Bilingüe** resuelve completamente el problema de idioma:
-
-✅ **Tu app usa español** - Nombres naturales para usuarios hispanohablantes  
-✅ **La API funciona en inglés** - Datos reales de ExerciseDB  
-✅ **Traducción automática** - Sin cambios en tu código  
-✅ **69 actividades predefinidas** - Cobertura completa  
-✅ **Fácil extensión** - Añadir nuevas traducciones  
-
-**¡Ahora puedes usar tu aplicación en español sin preocuparte por la API!** 🚀
+Este proyecto es de uso educativo y personal.

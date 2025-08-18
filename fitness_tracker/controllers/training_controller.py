@@ -13,7 +13,7 @@ class TrainingController:
         self.training_model = TrainingModel()
         self.training_api = TrainingAPI()
     
-    def add_training(self, activity, minutes):
+    def add_training(self, activity, minutes, user_weight=70.0):
         """Añadir un nuevo entrenamiento"""
         try:
             # Validar datos de entrada
@@ -23,8 +23,11 @@ class TrainingController:
             if minutes <= 0 or minutes > 1440:  # Máximo 24 horas
                 return {'success': False, 'message': 'Los minutos deben estar entre 1 y 1440'}
             
-            # Obtener calorías quemadas de la API
-            calories_burned = self.training_api.get_calories_burned(activity, minutes)
+            if user_weight <= 0 or user_weight > 500:  # Validar peso razonable
+                return {'success': False, 'message': 'El peso debe ser un valor válido'}
+            
+            # Obtener calorías quemadas de la API usando el peso del usuario
+            calories_burned = self.training_api.get_calories_burned(activity, minutes, user_weight)
             
             # Guardar en la base de datos
             training_id = self.training_model.add_training(activity, minutes, calories_burned)
@@ -32,9 +35,10 @@ class TrainingController:
             if training_id:
                 return {
                     'success': True, 
-                    'message': f'Entrenamiento registrado: {activity} - {minutes} min - {calories_burned} cal',
+                    'message': f'Entrenamiento registrado: {activity} - {minutes} min - {calories_burned} cal (peso: {user_weight} kg)',
                     'training_id': training_id,
-                    'calories_burned': calories_burned
+                    'calories_burned': calories_burned,
+                    'user_weight': user_weight
                 }
             else:
                 return {'success': False, 'message': 'Error al guardar el entrenamiento'}

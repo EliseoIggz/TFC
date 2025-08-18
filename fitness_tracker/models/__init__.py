@@ -5,5 +5,6 @@
 from .database import Database
 from .training_model import TrainingModel
 from .nutrition_model import NutritionModel
+from .user_model import UserModel
 
 __all__ = ['Database', 'TrainingModel', 'NutritionModel']

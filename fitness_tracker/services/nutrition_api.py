@@ -13,8 +13,9 @@ class NutritionAPI:
     
     def __init__(self):
         """Inicializar la API real con configuración optimizada"""
-        self.api_url = config.OPENFOODFACTS_API_URL
-        self.timeout = config.OPENFOODFACTS_API_TIMEOUT
+        # Configuración por defecto ya que las configuraciones externas se eliminaron
+        self.api_url = "https://world.openfoodfacts.org/cgi/search.pl"
+        self.timeout = 10  # Timeout por defecto en segundos
         self.use_real_api = True  # Siempre usar API real
         
         # Headers optimizados para mejor rendimiento
@@ -33,16 +34,16 @@ class NutritionAPI:
                 'search_simple': 1,
                 'action': 'process',
                 'json': 1,
-                'page_size': 10,
+                'page_size': 20,  # Aumentar para más opciones
                 'page': 1,
                 # Optimizaciones para España
                 'lc': 'es',  # Idioma español
                 'cc': 'es',  # País España
                 'nocache': 1,  # Sin caché para datos frescos
-                # Ordenar por datos recientes
-                'sort_by': 'last_modified_t',
+                # Ordenar por calidad de datos nutricionales
+                'sort_by': 'nutrition_grade_fr',
                 # Campos específicos para optimizar transferencia
-                'fields': 'product_name_es,product_name,nutriments,categories_tags,labels_tags,brands,image_url,nutrition_grade_fr'
+                'fields': 'product_name_es,product_name,nutriments,categories_tags,labels_tags,brands,image_url,nutrition_grade_fr,ingredients_text_es,ingredients_text'
             }
             
             # Filtros específicos para alimentos frescos
@@ -182,12 +183,13 @@ class NutritionAPI:
             'quinoa': ['quinoa', 'quinua'],
             
             # === CARNES ===
-            'pollo': ['pollo fresco crudo', 'pechuga pollo', 'pollo'],
-            'ternera': ['ternera fresca cruda', 'ternera', 'beef'],
-            'cerdo': ['cerdo fresco crudo', 'cerdo', 'pork'],
-            'pavo': ['pavo fresco', 'pavo', 'turkey'],
-            'cordero': ['cordero fresco', 'cordero', 'lamb'],
-            'jamón': ['jamón', 'ham'],
+            'ternera': ['ternera filete', 'filete ternera', 'ternera fresca', 'beef fillet', 'beef steak', 'ternera'],
+            'filete': ['filete ternera', 'filete de ternera', 'beef fillet', 'filete'],
+            'pollo': ['pollo pechuga', 'pechuga pollo', 'pollo fresco', 'chicken breast', 'chicken fresh', 'pollo'],
+            'cerdo': ['cerdo lomo', 'lomo cerdo', 'cerdo fresco', 'pork loin', 'pork fresh', 'cerdo'],
+            'cordero': ['cordero chuleta', 'chuleta cordero', 'cordero fresco', 'lamb chop', 'lamb fresh', 'cordero'],
+            'pavo': ['pavo pechuga', 'pechuga pavo', 'pavo fresco', 'turkey breast', 'turkey fresh', 'pavo'],
+            'conejo': ['conejo carne', 'carne conejo', 'conejo fresco', 'rabbit meat', 'rabbit fresh', 'conejo'],
             
             # === PESCADOS Y MARISCOS ===
             'pescado': ['pescado fresco', 'pescado', 'fish fresh'],
@@ -300,26 +302,119 @@ class NutritionAPI:
         if not products:
             return []
         
-        search_lower = original_search.lower()
         scored_products = []
+        original_search_lower = original_search.lower()
         
         for product in products:
-            score = self._calculate_product_score(product, search_lower, is_fresh)
-            if score > 0:  # Solo productos con score positivo
-                scored_products.append((product, score))
+            score = 0.0
+            product_name = product.get('product_name_es', product.get('product_name', ''))
+            product_name_lower = product_name.lower()
+            
+            # === SCORING POR NOMBRE ===
+            # Coincidencia exacta del nombre
+            if original_search_lower in product_name_lower:
+                score += 50.0
+            
+            # Coincidencia de palabras clave
+            search_words = original_search_lower.split()
+            for word in search_words:
+                if len(word) > 2 and word in product_name_lower:
+                    score += 10.0
+            
+            # === SCORING POR CALIDAD DE DATOS ===
+            nutriments = product.get('nutriments', {})
+            
+            # Priorizar productos con calorías completas
+            calories = self._safe_float(nutriments.get('energy-kcal_100g', nutriments.get('energy_100g')))
+            if calories > 0:
+                score += 30.0
+                # Bonus por calorías realistas según el tipo de alimento
+                if 'ternera' in product_name_lower or 'beef' in product_name_lower:
+                    if 200 <= calories <= 400:  # Rango realista para ternera
+                        score += 20.0
+                    elif calories < 200:  # Demasiado bajo
+                        score -= 15.0
+                elif 'pollo' in product_name_lower or 'chicken' in product_name_lower:
+                    if 150 <= calories <= 250:  # Rango realista para pollo
+                        score += 20.0
+                    elif calories < 150:
+                        score -= 15.0
+                elif 'pescado' in product_name_lower or 'fish' in product_name_lower:
+                    if 100 <= calories <= 200:  # Rango realista para pescado
+                        score += 20.0
+                    elif calories < 100:
+                        score -= 15.0
+            
+            # Bonus por macronutrientes completos
+            proteins = self._safe_float(nutriments.get('proteins_100g', 0))
+            carbs = self._safe_float(nutriments.get('carbohydrates_100g', 0))
+            fats = self._safe_float(nutriments.get('fat_100g', 0))
+            
+            if proteins > 0:
+                score += 15.0
+            if carbs > 0:
+                score += 10.0
+            if fats > 0:
+                score += 10.0
+            
+            # === SCORING POR CATEGORÍA ===
+            categories = product.get('categories_tags', [])
+            category_text = ' '.join(categories).lower()
+            
+            # Priorizar categorías relevantes
+            if 'meats' in category_text or 'carnes' in category_text:
+                score += 25.0
+            if 'fresh' in category_text or 'fresco' in category_text:
+                score += 20.0
+            if 'organic' in category_text or 'organico' in category_text:
+                score += 15.0
+            
+            # Penalizar categorías no deseadas
+            if 'processed' in category_text or 'procesado' in category_text:
+                score -= 20.0
+            if 'snacks' in category_text or 'aperitivos' in category_text:
+                score -= 15.0
+            
+            # === SCORING POR MARCA ===
+            brand = product.get('brands', '').lower()
+            if brand and brand != 'sin marca':
+                score += 5.0
+            
+            # === SCORING POR IDIOMA ===
+            if product.get('product_name_es'):
+                score += 10.0
+            
+            # === FILTROS DE CALIDAD ===
+            # Excluir productos con calorías extremadamente bajas para carnes
+            if ('ternera' in product_name_lower or 'beef' in product_name_lower) and calories < 150:
+                score -= 50.0  # Penalización fuerte
+            if ('pollo' in product_name_lower or 'chicken' in product_name_lower) and calories < 100:
+                score -= 50.0
+            if ('pescado' in product_name_lower or 'fish' in product_name_lower) and calories < 80:
+                score -= 50.0
+            
+            # Añadir producto con su score
+            scored_products.append({
+                'product': product,
+                'score': score,
+                'calories': calories,
+                'proteins': proteins,
+                'carbs': carbs,
+                'fats': fats
+            })
         
         # Ordenar por score descendente
-        scored_products.sort(key=lambda x: x[1], reverse=True)
+        scored_products.sort(key=lambda x: x['score'], reverse=True)
         
-        # Extraer solo los productos
-        filtered_products = [product for product, score in scored_products]
+        # Log de scoring para depuración
+        print(f"🏆 Top 3 productos por score:")
+        for i, scored in enumerate(scored_products[:3]):
+            product = scored['product']
+            name = product.get('product_name_es', product.get('product_name', 'Sin nombre'))
+            print(f"   {i+1}. Score: {scored['score']:.1f} - '{name}' - {scored['calories']} cal/100g")
         
-        print(f"🔍 Productos filtrados y puntuados: {len(filtered_products)} de {len(products)} originales")
-        if filtered_products:
-            best_score = scored_products[0][1]
-            print(f"   🏆 Mejor puntuación: {best_score:.1f}")
-        
-        return filtered_products
+        # Devolver solo los productos originales (sin el scoring)
+        return [scored['product'] for scored in scored_products]
     
     def _calculate_product_score(self, product: Dict, search_term: str, is_fresh: bool) -> float:
         """Calcular puntuación de relevancia para un producto"""

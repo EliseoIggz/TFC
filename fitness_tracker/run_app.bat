@@ -60,7 +60,7 @@ if errorlevel 1 (
 
 :: Ejecutar la aplicación
 echo.
-echo 🎯 Lanzando Fitness Tracker...
+echo Lanzando Fitness Tracker...
 echo.
 echo ========================================
 echo     La aplicacion se abrira en tu navegador

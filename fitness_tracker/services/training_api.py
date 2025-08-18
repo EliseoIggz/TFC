@@ -1,268 +1,268 @@
-# Fitness Tracker - API Real de Deporte
-# =====================================
-# Este archivo integra APIs reales para calcular calorías quemadas
+# Fitness Tracker - API de Deportes
+# =================================
+# Este archivo calcula calorías quemadas en actividades deportivas
 
-import requests
 import config
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional
 
 class TrainingAPI:
-    """API real para calcular calorías quemadas en actividades deportivas"""
+    """API para calcular calorías quemadas en actividades deportivas"""
     
     def __init__(self):
-        """Inicializar la API real"""
-        # ExerciseDB API - Base gratuita de ejercicios deportivos
-        self.exercise_db_url = "https://exercisedb.p.rapidapi.com"
-        self.api_key = getattr(config, 'EXERCISE_DB_API_KEY', None)
-        self.api_host = getattr(config, 'EXERCISE_DB_API_HOST', 'exercisedb.p.rapidapi.com')
-        
-        # Verificar si hay API key configurada
-        self.use_real_api = bool(self.api_key)
-        
-        # Sistema de mapeo bilingüe español-inglés
-        self.spanish_to_english_mapping = {
-            # Actividades cardiovasculares
-            'correr': 'running',
-            'caminar': 'walking',
-            'ciclismo': 'cycling',
-            'natación': 'swimming',
-            'nadar': 'swimming',
-            'fútbol': 'football',
-            'baloncesto': 'basketball',
-            'tenis': 'tenis',
-            'boxeo': 'boxing',
-            'baile': 'dancing',
-            'senderismo': 'hiking',
-            'escalada': 'climbing',
-            'remo': 'rowing',
-            'patinaje': 'skating',
-            'esquí': 'skiing',
-            'snowboard': 'snowboarding',
-            'surf': 'surfing',
-            'voleibol': 'volleyball',
-            'bádminton': 'badminton',
-            'ping pong': 'table tennis',
-            'tenis de mesa': 'table tennis',
+        """Inicializar la API de deportes"""
+        # Base de datos local de deportes y ejercicios con METs reales (SOLO EN ESPAÑOL)
+        self.sports_database = {
+            # DEPORTES DE EQUIPO
+            'fútbol': {'name': 'Fútbol', 'met': 8.0, 'category': 'deporte_equipo'},
+            'baloncesto': {'name': 'Baloncesto', 'met': 8.0, 'category': 'deporte_equipo'},
+            'tenis': {'name': 'Tenis', 'met': 7.0, 'category': 'deporte_raqueta'},
+            'voleibol': {'name': 'Voleibol', 'met': 4.0, 'category': 'deporte_equipo'},
+            'bádminton': {'name': 'Bádminton', 'met': 5.5, 'category': 'deporte_raqueta'},
+            'hockey': {'name': 'Hockey', 'met': 8.0, 'category': 'deporte_equipo'},
+            'rugby': {'name': 'Rugby', 'met': 10.0, 'category': 'deporte_equipo'},
+            'béisbol': {'name': 'Béisbol', 'met': 5.0, 'category': 'deporte_equipo'},
+            'balonmano': {'name': 'Balonmano', 'met': 8.0, 'category': 'deporte_equipo'},
+            'cricket': {'name': 'Cricket', 'met': 5.0, 'category': 'deporte_equipo'},
+            'pádel': {'name': 'Pádel', 'met': 6.0, 'category': 'deporte_raqueta'},
             
-            # Actividades de fuerza
-            'gimnasio': 'gym',
-            'pesas': 'weightlifting',
-            'levantamiento de pesas': 'weightlifting',
-            'musculación': 'bodybuilding',
-            'entrenamiento de fuerza': 'strength training',
-            'calistenia': 'calisthenics',
-            'crossfit': 'crossfit',
-            'powerlifting': 'powerlifting',
-            'halterofilia': 'weightlifting',
+            # DEPORTES ACUÁTICOS
+            'natación': {'name': 'Natación', 'met': 7.0, 'category': 'deporte_acuatico'},
+            'nadar': {'name': 'Nadar', 'met': 7.0, 'category': 'deporte_acuatico'},
+            'waterpolo': {'name': 'Waterpolo', 'met': 10.0, 'category': 'deporte_acuatico'},
+            'remo': {'name': 'Remo', 'met': 7.0, 'category': 'deporte_acuatico'},
+            'surf': {'name': 'Surf', 'met': 3.0, 'category': 'deporte_acuatico'},
+            'buceo': {'name': 'Buceo', 'met': 5.0, 'category': 'deporte_acuatico'},
+            'kayak': {'name': 'Kayak', 'met': 5.0, 'category': 'deporte_acuatico'},
+            'piragüismo': {'name': 'Piragüismo', 'met': 6.0, 'category': 'deporte_acuatico'},
+            'vela': {'name': 'Vela', 'met': 3.0, 'category': 'deporte_acuatico'},
             
-            # Actividades de flexibilidad
-            'yoga': 'yoga',
-            'pilates': 'pilates',
-            'estiramientos': 'stretching',
-            'flexibilidad': 'flexibility',
-            'tai chi': 'tai chi',
-            'meditación': 'meditation',
-            'relajación': 'relaxation',
+            # DEPORTES DE INVIERNO
+            'esquí': {'name': 'Esquí', 'met': 7.0, 'category': 'deporte_invierno'},
+            'esquí_alpino': {'name': 'Esquí Alpino', 'met': 8.0, 'category': 'deporte_invierno'},
+            'esquí_nórdico': {'name': 'Esquí Nórdico', 'met': 9.0, 'category': 'deporte_invierno'},
+            'snowboard': {'name': 'Snowboard', 'met': 5.0, 'category': 'deporte_invierno'},
+            'patinaje': {'name': 'Patinaje', 'met': 5.5, 'category': 'deporte_invierno'},
+            'patinaje_hielo': {'name': 'Patinaje sobre Hielo', 'met': 6.0, 'category': 'deporte_invierno'},
+            'patinaje_artístico': {'name': 'Patinaje Artístico', 'met': 6.5, 'category': 'deporte_invierno'},
+            'curling': {'name': 'Curling', 'met': 4.0, 'category': 'deporte_invierno'},
+            'bobsleigh': {'name': 'Bobsleigh', 'met': 6.0, 'category': 'deporte_invierno'},
+            'luge': {'name': 'Luge', 'met': 5.0, 'category': 'deporte_invierno'},
             
-            # Actividades específicas
-            'sentadillas': 'squats',
-            'flexiones': 'push-ups',
-            'dominadas': 'pull-ups',
-            'plancha': 'plank',
-            'zancadas': 'lunges',
-            'burpees': 'burpees',
-            'mountain climbers': 'mountain climbers',
-            'jumping jacks': 'jumping jacks'
+            # DEPORTES DE COMBATE
+            'boxeo': {'name': 'Boxeo', 'met': 12.0, 'category': 'deporte_combate'},
+            'kick_boxeo': {'name': 'Kick Boxeo', 'met': 10.0, 'category': 'deporte_combate'},
+            'karate': {'name': 'Karate', 'met': 8.0, 'category': 'deporte_combate'},
+            'taekwondo': {'name': 'Taekwondo', 'met': 9.0, 'category': 'deporte_combate'},
+            'judo': {'name': 'Judo', 'met': 8.0, 'category': 'deporte_combate'},
+            'mma': {'name': 'MMA', 'met': 11.0, 'category': 'deporte_combate'},
+            'muay_thai': {'name': 'Muay Thai', 'met': 10.0, 'category': 'deporte_combate'},
+            'kung_fu': {'name': 'Kung Fu', 'met': 8.0, 'category': 'deporte_combate'},
+            'aikido': {'name': 'Aikido', 'met': 6.0, 'category': 'deporte_combate'},
+            'capoeira': {'name': 'Capoeira', 'met': 8.0, 'category': 'deporte_combate'},
+            'esgrima': {'name': 'Esgrima', 'met': 6.0, 'category': 'deporte_combate'},
+            'lucha_libre': {'name': 'Lucha Libre', 'met': 9.0, 'category': 'deporte_combate'},
+            
+            # DEPORTES DE RESISTENCIA
+            'correr': {'name': 'Correr', 'met': 8.0, 'category': 'deporte_resistencia'},
+            'maratón': {'name': 'Maratón', 'met': 9.0, 'category': 'deporte_resistencia'},
+            'media_maratón': {'name': 'Media Maratón', 'met': 8.5, 'category': 'deporte_resistencia'},
+            'ciclismo': {'name': 'Ciclismo', 'met': 6.0, 'category': 'deporte_resistencia'},
+            'ciclismo_montaña': {'name': 'Ciclismo de Montaña', 'met': 8.0, 'category': 'deporte_resistencia'},
+            'ciclismo_ruta': {'name': 'Ciclismo de Ruta', 'met': 7.0, 'category': 'deporte_resistencia'},
+            'triatlón': {'name': 'Triatlón', 'met': 10.0, 'category': 'deporte_resistencia'},
+            'duatlón': {'name': 'Duatlón', 'met': 9.0, 'category': 'deporte_resistencia'},
+            'ultramaratón': {'name': 'Ultramaratón', 'met': 9.5, 'category': 'deporte_resistencia'},
+            
+            # DEPORTES DE FUERZA
+            'halterofilia': {'name': 'Halterofilia', 'met': 6.0, 'category': 'deporte_fuerza'},
+            'powerlifting': {'name': 'Powerlifting', 'met': 6.0, 'category': 'deporte_fuerza'},
+            'crossfit': {'name': 'CrossFit', 'met': 10.0, 'category': 'deporte_fuerza'},
+            'calistenia': {'name': 'Calistenia', 'met': 8.0, 'category': 'deporte_fuerza'},
+            'bodybuilding': {'name': 'Bodybuilding', 'met': 5.0, 'category': 'deporte_fuerza'},
+            'musculación': {'name': 'Musculación', 'met': 5.0, 'category': 'deporte_fuerza'},
+            'strongman': {'name': 'Strongman', 'met': 7.0, 'category': 'deporte_fuerza'},
+            'levantamiento_pesas': {'name': 'Levantamiento de Pesas', 'met': 6.0, 'category': 'deporte_fuerza'},
+            
+            # DEPORTES DE AVENTURA
+            'escalada': {'name': 'Escalada', 'met': 8.0, 'category': 'deporte_aventura'},
+            'escalada_roca': {'name': 'Escalada en Roca', 'met': 8.5, 'category': 'deporte_aventura'},
+            'escalada_muro': {'name': 'Escalada en Muro', 'met': 7.5, 'category': 'deporte_aventura'},
+            'senderismo': {'name': 'Senderismo', 'met': 6.0, 'category': 'deporte_aventura'},
+            'montañismo': {'name': 'Montañismo', 'met': 7.0, 'category': 'deporte_aventura'},
+            'parkour': {'name': 'Parkour', 'met': 9.0, 'category': 'deporte_aventura'},
+            'trekking': {'name': 'Trekking', 'met': 6.5, 'category': 'deporte_aventura'},
+            'orientación': {'name': 'Orientación', 'met': 7.0, 'category': 'deporte_aventura'},
+            'rafting': {'name': 'Rafting', 'met': 8.0, 'category': 'deporte_aventura'},
+            'parapente': {'name': 'Parapente', 'met': 3.0, 'category': 'deporte_aventura'},
+            'bungee_jumping': {'name': 'Bungee Jumping', 'met': 4.0, 'category': 'deporte_aventura'},
+            
+            # DEPORTES DE BAILE
+            'baile': {'name': 'Baile', 'met': 5.0, 'category': 'deporte_baile'},
+            'zumba': {'name': 'Zumba', 'met': 8.0, 'category': 'deporte_baile'},
+            'salsa': {'name': 'Salsa', 'met': 6.0, 'category': 'deporte_baile'},
+            'bachata': {'name': 'Bachata', 'met': 6.0, 'category': 'deporte_baile'},
+            'merengue': {'name': 'Merengue', 'met': 6.0, 'category': 'deporte_baile'},
+            'tango': {'name': 'Tango', 'met': 5.5, 'category': 'deporte_baile'},
+            'flamenco': {'name': 'Flamenco', 'met': 7.0, 'category': 'deporte_baile'},
+            'ballet': {'name': 'Ballet', 'met': 6.0, 'category': 'deporte_baile'},
+            'contemporáneo': {'name': 'Danza Contemporánea', 'met': 6.5, 'category': 'deporte_baile'},
+            'hip_hop': {'name': 'Hip Hop', 'met': 7.0, 'category': 'deporte_baile'},
+            'breakdance': {'name': 'Breakdance', 'met': 8.0, 'category': 'deporte_baile'},
+            'jazz': {'name': 'Jazz Dance', 'met': 6.0, 'category': 'deporte_baile'},
+            'tap': {'name': 'Tap Dance', 'met': 6.5, 'category': 'deporte_baile'},
+            
+            # DEPORTES DE PRECISIÓN
+            'golf': {'name': 'Golf', 'met': 3.0, 'category': 'deporte_precision'},
+            'tiro_arco': {'name': 'Tiro con Arco', 'met': 3.0, 'category': 'deporte_precision'},
+            'billar': {'name': 'Billar', 'met': 2.5, 'category': 'deporte_precision'},
+            'snooker': {'name': 'Snooker', 'met': 2.5, 'category': 'deporte_precision'},
+            'dardos': {'name': 'Dardos', 'met': 2.0, 'category': 'deporte_precision'},
+            'petanca': {'name': 'Petanca', 'met': 2.5, 'category': 'deporte_precision'},
+            'bolos': {'name': 'Bolos', 'met': 3.0, 'category': 'deporte_precision'},
+            'tiro_deportivo': {'name': 'Tiro Deportivo', 'met': 2.5, 'category': 'deporte_precision'},
+            
+            # ACTIVIDADES FITNESS
+            'yoga': {'name': 'Yoga', 'met': 2.5, 'category': 'fitness'},
+            'pilates': {'name': 'Pilates', 'met': 3.0, 'category': 'fitness'},
+            'spinning': {'name': 'Spinning', 'met': 8.0, 'category': 'fitness'},
+            'aeróbic': {'name': 'Aeróbic', 'met': 7.0, 'category': 'fitness'},
+            'step': {'name': 'Step', 'met': 6.0, 'category': 'fitness'},
+            'body_pump': {'name': 'Body Pump', 'met': 7.0, 'category': 'fitness'},
+            'body_combat': {'name': 'Body Combat', 'met': 8.0, 'category': 'fitness'},
+            'body_balance': {'name': 'Body Balance', 'met': 4.0, 'category': 'fitness'},
+            'body_attack': {'name': 'Body Attack', 'met': 9.0, 'category': 'fitness'},
+            'body_vive': {'name': 'Body Vive', 'met': 5.0, 'category': 'fitness'},
+            'body_jam': {'name': 'Body Jam', 'met': 7.0, 'category': 'fitness'},
+            'body_step': {'name': 'Body Step', 'met': 7.0, 'category': 'fitness'},
+            'body_flow': {'name': 'Body Flow', 'met': 4.0, 'category': 'fitness'},
+            'body_core': {'name': 'Body Core', 'met': 6.0, 'category': 'fitness'},
+            
+            # EJERCICIOS ESPECÍFICOS
+            'sentadillas': {'name': 'Sentadillas', 'met': 8.0, 'category': 'ejercicio_fuerza'},
+            'flexiones': {'name': 'Flexiones', 'met': 8.0, 'category': 'ejercicio_fuerza'},
+            'dominadas': {'name': 'Dominadas', 'met': 8.0, 'category': 'ejercicio_fuerza'},
+            'plancha': {'name': 'Plancha', 'met': 4.0, 'category': 'ejercicio_fuerza'},
+            'flexiones_brazos': {'name': 'Flexiones de Brazos', 'met': 8.0, 'category': 'ejercicio_fuerza'},
+            'dominadas_barra': {'name': 'Dominadas en Barra', 'met': 8.0, 'category': 'ejercicio_fuerza'},
+            'burpees': {'name': 'Burpees', 'met': 10.0, 'category': 'ejercicio_fuerza'},
+            'escaladores_montaña': {'name': 'Escaladores de Montaña', 'met': 8.0, 'category': 'ejercicio_fuerza'},
+            'zancadas': {'name': 'Zancadas', 'met': 7.0, 'category': 'ejercicio_fuerza'},
+            'peso_muerto': {'name': 'Peso Muerto', 'met': 6.0, 'category': 'ejercicio_fuerza'},
+            'press_banca': {'name': 'Press de Banca', 'met': 6.0, 'category': 'ejercicio_fuerza'},
+            'press_militar': {'name': 'Press Militar', 'met': 6.0, 'category': 'ejercicio_fuerza'},
+            'curl_biceps': {'name': 'Curl de Bíceps', 'met': 5.0, 'category': 'ejercicio_fuerza'},
+            'extension_triceps': {'name': 'Extensión de Tríceps', 'met': 5.0, 'category': 'ejercicio_fuerza'},
+            
+            # ACTIVIDADES DIARIAS
+            'caminar': {'name': 'Caminar', 'met': 3.5, 'category': 'actividad_diaria'},
+            
+            # DEPORTES EXTREMOS
+            'paracaidismo': {'name': 'Paracaidismo', 'met': 3.0, 'category': 'deporte_extremo'},
+            'escalada_libre': {'name': 'Escalada Libre', 'met': 9.0, 'category': 'deporte_extremo'},
+            'base_jumping': {'name': 'Base Jumping', 'met': 4.0, 'category': 'deporte_extremo'},
+            'esquí_extremo': {'name': 'Esquí Extremo', 'met': 9.0, 'category': 'deporte_extremo'},
+            'snowboard_extremo': {'name': 'Snowboard Extremo', 'met': 8.0, 'category': 'deporte_extremo'},
+            
+            # DEPORTES MOTORIZADOS
+            'motocross': {'name': 'Motocross', 'met': 4.0, 'category': 'deporte_motor'},
+            'karting': {'name': 'Karting', 'met': 3.0, 'category': 'deporte_motor'},
+            'rally': {'name': 'Rally', 'met': 3.5, 'category': 'deporte_motor'},
+            
+            # DEPORTES TRADICIONALES
+            'pelota_vasca': {'name': 'Pelota Vasca', 'met': 8.0, 'category': 'deporte_tradicional'},
+            'lucha_canaria': {'name': 'Lucha Canaria', 'met': 7.0, 'category': 'deporte_tradicional'},
+            'juego_del_palo': {'name': 'Juego del Palo', 'met': 6.0, 'category': 'deporte_tradicional'},
+            
+            # DEPORTES ACUÁTICOS EXTREMOS
+            'surf_extremo': {'name': 'Surf Extremo', 'met': 8.0, 'category': 'deporte_acuatico_extremo'},
+            'wakeboard': {'name': 'Wakeboard', 'met': 7.0, 'category': 'deporte_acuatico_extremo'},
+            'esquí_acuático': {'name': 'Esquí Acuático', 'met': 6.0, 'category': 'deporte_acuatico_extremo'},
+            
+            # DEPORTES DE INVIERNO EXTREMOS
+            'esquí_acrobático': {'name': 'Esquí Acrobático', 'met': 8.0, 'category': 'deporte_invierno_extremo'},
+            'snowboard_acrobático': {'name': 'Snowboard Acrobático', 'met': 8.0, 'category': 'deporte_invierno_extremo'},
         }
         
-        # Mapeo inverso inglés-español
-        self.english_to_spanish_mapping = {v: k for k, v in self.spanish_to_english_mapping.items()}
-    
-    def _make_api_request(self, endpoint: str, params: Dict = None) -> Optional[Dict]:
-        """Realizar petición a la API real"""
-        if not self.use_real_api:
-            return None
-            
-        try:
-            headers = {
-                'X-RapidAPI-Key': self.api_key,
-                'X-RapidAPI-Host': self.api_host
-            }
-            
-            url = f"{self.exercise_db_url}{endpoint}"
-            response = requests.get(url, headers=headers, params=params, timeout=10)
-            
-            if response.status_code == 200:
-                data = response.json()
-                
-                # Debug: Mostrar información sobre la respuesta
-                if isinstance(data, list):
-                    print(f"📊 API {endpoint}: {len(data)} elementos recibidos")
-                    if len(data) <= 10:
-                        print(f"⚠️  Posible rate limiting: solo {len(data)} elementos")
-                else:
-                    print(f"📊 API {endpoint}: {type(data)} recibido")
-                
-                return data
-            else:
-                print(f"❌ Error API {endpoint}: {response.status_code} - {response.text}")
-                return None
-                
-        except Exception as e:
-            print(f"❌ Error en petición API {endpoint}: {e}")
-            return None
+        print(f"🏃‍♂️ Base de deportes cargada: {len(self.sports_database)} actividades disponibles")
     
     def get_calories_burned(self, activity: str, minutes: int, weight: float = 70.0) -> int:
-        """Calcular calorías quemadas usando API real"""
-        if not self.use_real_api:
-            raise ValueError("API key no configurada. Configura EXERCISE_DB_API_KEY en config.py")
-        
-        # Traducción automática del español al inglés
-        english_activity = self._translate_activity_to_english(activity)
-        
-        # Obtener datos de la API real
-        api_calories = self._get_calories_from_api(english_activity, minutes, weight)
-        if api_calories is not None:
-            return api_calories
-        
-        # Si no se encuentran datos, lanzar error
-        raise ValueError(f"No se encontraron datos para la actividad '{activity}' en la API")
-    
-    def _get_calories_from_api(self, activity: str, minutes: int, weight: float) -> Optional[int]:
-        """Obtener calorías desde la API real - versión simplificada"""
-        try:
-            # Llamada directa a la API
-            exercises = self._make_api_request('/exercises')
-            
-            if exercises and len(exercises) > 0:
-                # Buscar ejercicio de forma simple
-                matching_exercise = self._find_matching_exercise(activity, exercises)
-                
-                if matching_exercise:
-                    # Calcular calorías usando un MET fijo y simple
-                    # MET promedio para ejercicios generales: 6.0
-                    met_value = 6.0
-                    
-                    # Fórmula: Calorías = MET × Peso (kg) × Tiempo (horas)
-                    calories_per_hour = met_value * weight
-                    calories_per_minute = calories_per_hour / 60
-                    total_calories = round(calories_per_minute * minutes)
-                    
-                    print(f"🔥 Calorías calculadas: {total_calories} cal ({minutes} min, {weight} kg)")
-                    return total_calories
-                
-        except Exception as e:
-            print(f"Error obteniendo calorías de API: {e}")
-            
-        return None
-    
-    def _find_matching_exercise(self, activity: str, exercises: List[Dict]) -> Optional[Dict]:
-        """Buscar ejercicio de forma simple - solo por nombre o cualquier ejercicio disponible"""
-        activity_lower = activity.lower()
-        
-        # Prioridad 1: Búsqueda por nombre (exacta o parcial)
-        for exercise in exercises:
-            exercise_name = exercise.get('name', '').lower()
-            if activity_lower in exercise_name or exercise_name in activity_lower:
-                return exercise
-        
-        # Prioridad 2: Si no encuentra por nombre, devolver el primer ejercicio disponible
-        # Esto asegura que siempre se pueda calcular calorías
-        if exercises:
-            print(f"💡 No se encontró '{activity}' exacto, usando ejercicio similar: {exercises[0].get('name', '')}")
-            return exercises[0]
-        
-        return None
-    
-    def get_activity_suggestions(self, query: str) -> List[str]:
-        """Obtener sugerencias de actividades deportivas desde API real"""
-        if not self.use_real_api:
-            raise ValueError("API key no configurada. Configura EXERCISE_DB_API_KEY en config.py")
-        
-        # Traducción automática del español al inglés para la búsqueda
-        english_query = self._translate_activity_to_english(query)
-        
-        try:
-            # Llamada directa a la API
-            exercises = self._make_api_request('/exercises')
-            
-            if exercises:
-                # Filtrar ejercicios que coincidan con la consulta en inglés
-                suggestions = []
-                english_query_lower = english_query.lower()
-                
-                for exercise in exercises:
-                    exercise_name = exercise.get('name', '')
-                    if english_query_lower in exercise_name.lower():
-                        # Traducir el resultado al español si es posible
-                        spanish_name = self._translate_activity_to_spanish(exercise_name)
-                        suggestions.append(spanish_name)
-                
-                return suggestions[:5]  # Máximo 5 sugerencias
-            
-            return []
-            
-        except Exception as e:
-            print(f"Error obteniendo sugerencias de API: {e}")
-            return []
-    
-    def get_exercise_details(self, exercise_name: str) -> Optional[Dict]:
-        """Obtener detalles completos de un ejercicio desde la API"""
-        if not self.use_real_api:
-            raise ValueError("API key no configurada. Configura EXERCISE_DB_API_KEY en config.py")
-            
-        try:
-            # Llamada directa a la API
-            exercises = self._make_api_request('/exercises')
-            
-            if exercises and len(exercises) > 0:
-                # Buscar ejercicio por nombre en la lista completa
-                matching_exercise = None
-                for exercise in exercises:
-                    if exercise_name.lower() in exercise.get('name', '').lower():
-                        matching_exercise = exercise
-                        break
-                
-                if matching_exercise:
-                    return {
-                        'name': matching_exercise.get('name', ''),
-                        'gifUrl': matching_exercise.get('gifUrl', ''),
-                        'target': matching_exercise.get('target', ''),
-                        'secondaryMuscles': matching_exercise.get('secondaryMuscles', []),
-                        'instructions': matching_exercise.get('instructions', [])
-                    }
-                
-                # Si no se encuentra, lanzar error
-                raise ValueError(f"No se encontraron detalles para '{exercise_name}'")
-            
-            return None
-                
-        except Exception as e:
-            print(f"Error obteniendo detalles del ejercicio: {e}")
-            raise ValueError(f"No se pudo obtener detalles para '{exercise_name}'")
-    
-    def _translate_activity_to_english(self, activity: str) -> str:
-        """Traducir actividad del español al inglés para la API"""
+        """Calcular calorías quemadas en deportes"""
         activity_lower = activity.lower().strip()
         
-        # Buscar en el mapeo bilingüe
-        if activity_lower in self.spanish_to_english_mapping:
-            english_activity = self.spanish_to_english_mapping[activity_lower]
-            print(f"🌐 Traducción: '{activity}' → '{english_activity}'")
-            return english_activity
+        # Buscar en la base de deportes
+        if activity_lower in self.sports_database:
+            sport_data = self.sports_database[activity_lower]
+            met_value = sport_data['met']
+            sport_name = sport_data['name']
+            category = sport_data['category']
+            
+            # Calcular calorías: MET × Peso (kg) × Tiempo (horas)
+            calories_per_hour = met_value * weight
+            calories_per_minute = calories_per_hour / 60
+            total_calories = round(calories_per_minute * minutes)
+            
+            print(f"✅ Deporte encontrado: {sport_name} ({category})")
+            print(f"🔥 Calorías calculadas: {total_calories} cal (MET: {met_value}, {minutes} min, {weight} kg)")
+            return total_calories
         
-        # Si no está en el mapeo, devolver la actividad original
-        # (por si ya está en inglés o es un nombre personalizado)
-        return activity
+        # Si no se encuentra, sugerir deportes similares
+        suggestions = self._find_similar_sports(activity_lower)
+        if suggestions:
+            raise ValueError(f"'{activity}' no encontrado. ¿Te refieres a: {', '.join(suggestions[:3])}?")
+        else:
+            raise ValueError(f"'{activity}' no encontrado. Prueba con: fútbol, correr, yoga, boxeo, etc.")
     
-    def _translate_activity_to_spanish(self, activity: str) -> str:
-        """Traducir actividad del inglés al español para la interfaz"""
-        activity_lower = activity.lower().strip()
+    def _find_similar_sports(self, query: str) -> List[str]:
+        """Encontrar deportes similares"""
+        suggestions = []
+        query_words = query.split()
         
-        # Buscar en el mapeo inverso
-        if activity_lower in self.english_to_spanish_mapping:
-            spanish_activity = self.english_to_spanish_mapping[activity_lower]
-            return spanish_activity
+        for sport_name, sport_data in self.sports_database.items():
+            # Buscar coincidencias por palabras
+            for word in query_words:
+                if len(word) > 2 and word in sport_name:
+                    suggestions.append(sport_data['name'])
+                    break
         
-        # Si no está en el mapeo, devolver la actividad original
-        return activity
+        return suggestions
+    
+    def get_sport_categories(self) -> Dict[str, List[str]]:
+        """Obtener deportes organizados por categorías"""
+        categories = {}
+        
+        for sport_name, sport_data in self.sports_database.items():
+            category = sport_data['category']
+            if category not in categories:
+                categories[category] = []
+            categories[category].append(sport_data['name'])
+        
+        return categories
+    
+    def search_sports(self, query: str) -> List[Dict]:
+        """Buscar deportes por consulta"""
+        results = []
+        query_lower = query.lower()
+        
+        for sport_name, sport_data in self.sports_database.items():
+            if (query_lower in sport_name or 
+                query_lower in sport_data['name'].lower() or
+                query_lower in sport_data['category']):
+                results.append({
+                    'name': sport_data['name'],
+                    'category': sport_data['category'],
+                    'met': sport_data['met']
+                })
+        
+        return results
+    
+    def get_all_sports(self) -> List[Dict]:
+        """Obtener todos los deportes disponibles"""
+        results = []
+        for sport_name, sport_data in self.sports_database.items():
+            results.append({
+                'key': sport_name,
+                'name': sport_data['name'],
+                'category': sport_data['category'],
+                'met': sport_data['met']
+            })
+        return results
