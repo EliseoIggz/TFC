@@ -31,19 +31,23 @@ class NutritionModel:
         """Obtener todas las comidas"""
         cursor = self.db.get_connection().cursor()
         cursor.execute('SELECT * FROM meals ORDER BY date DESC, created_at DESC')
-        return cursor.fetchall()
+        rows = cursor.fetchall()
+        # Convertir Row objects a diccionarios
+        return [dict(row) for row in rows]
     
     def get_meals_by_date(self, date):
         """Obtener comidas de una fecha específica"""
         cursor = self.db.get_connection().cursor()
         cursor.execute('SELECT * FROM meals WHERE date = ? ORDER BY created_at DESC', (date,))
-        return cursor.fetchall()
+        rows = cursor.fetchall()
+        return [dict(row) for row in rows]
     
     def get_recent_meals(self, limit=5):
         """Obtener comidas recientes"""
         cursor = self.db.get_connection().cursor()
         cursor.execute('SELECT * FROM meals ORDER BY created_at DESC LIMIT ?', (limit,))
-        return cursor.fetchall()
+        rows = cursor.fetchall()
+        return [dict(row) for row in rows]
     
     def delete_meal(self, meal_id):
         """Eliminar una comida por ID"""

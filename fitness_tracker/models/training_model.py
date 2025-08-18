@@ -31,19 +31,22 @@ class TrainingModel:
         """Obtener todos los entrenamientos"""
         cursor = self.db.get_connection().cursor()
         cursor.execute('SELECT * FROM trainings ORDER BY date DESC, created_at DESC')
-        return cursor.fetchall()
+        rows = cursor.fetchall()
+        return [dict(row) for row in rows]
     
     def get_trainings_by_date(self, date):
         """Obtener entrenamientos de una fecha específica"""
         cursor = self.db.get_connection().cursor()
         cursor.execute('SELECT * FROM trainings WHERE date = ? ORDER BY created_at DESC', (date,))
-        return cursor.fetchall()
+        rows = cursor.fetchall()
+        return [dict(row) for row in rows]
     
     def get_recent_trainings(self, limit=5):
         """Obtener entrenamientos recientes"""
         cursor = self.db.get_connection().cursor()
         cursor.execute('SELECT * FROM trainings ORDER BY created_at DESC LIMIT ?', (limit,))
-        return cursor.fetchall()
+        rows = cursor.fetchall()
+        return [dict(row) for row in rows]
     
     def delete_training(self, training_id):
         """Eliminar un entrenamiento por ID"""

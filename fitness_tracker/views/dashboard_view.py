@@ -74,19 +74,108 @@ class DashboardView:
         """Renderizar formulario para añadir comida"""
         st.subheader("Nueva Comida")
         
-        food = st.text_input("Alimento", placeholder="Ej: pollo, arroz, manzana...")
-        grams = st.number_input("Gramos", min_value=1, max_value=10000, value=100)
+        # Verificar si hay opciones de alimentos pendientes en session_state
+        if 'food_options' in st.session_state and st.session_state.food_options:
+            # Renderizar el selector de opciones
+            self._render_food_selector(st.session_state.food_options)
+        else:
+            # Renderizar el formulario normal
+            food = st.text_input("Alimento", placeholder="Ej: pollo, arroz, manzana...", key="food_input")
+            grams = st.number_input("Gramos", min_value=1, max_value=10000, value=100, key="grams_input")
+            
+            if st.button("➕ Añadir Comida", type="primary", key="add_meal_button"):
+                if food and grams:
+                    result = self.nutrition_controller.add_meal(food, grams)
+                    
+                    if result['success']:
+                        st.success(result['message'])
+                        st.rerun()
+                    elif result.get('multiple_options'):
+                        # Guardar opciones en session_state para persistencia
+                        st.session_state.food_options = result['options_data']
+                        st.rerun()
+                    else:
+                        st.error(result['message'])
+                else:
+                    st.warning("Por favor completa todos los campos")
+    
+    def _render_food_selector(self, options_data: dict):
+        """Renderizar selector interactivo de alimentos"""
+        # SIEMPRE actualizar las opciones en session_state (no solo si no existe)
+        st.session_state.food_options = options_data
         
-        if st.button("➕ Añadir Comida", type="primary"):
-            if food and grams:
-                result = self.nutrition_controller.add_meal(food, grams)
+        st.info(f"🔍 Se encontraron {len(options_data['options'])} opciones para '{options_data['search_term']}':")
+        
+        # Botón para cancelar y volver al formulario
+        col1, col2 = st.columns([1, 4])
+        with col1:
+            if st.button("❌ Cancelar", key="cancel_food_selection"):
+                # Limpiar session_state y volver al formulario
+                if 'food_options' in st.session_state:
+                    del st.session_state.food_options
+                # También limpiar cualquier key de radio button relacionado
+                keys_to_clear = [k for k in st.session_state.keys() if k.startswith('food_radio_')]
+                for key in keys_to_clear:
+                    del st.session_state[key]
+                st.rerun()
+        
+        with col2:
+            st.write("")  # Espaciado
+        
+        # Crear lista de opciones para el selectbox
+        option_labels = [opt['display_name'] for opt in options_data['options']]
+        
+        # Usar un key único que incluya el término de búsqueda para evitar conflictos
+        radio_key = f"food_radio_{options_data['search_term']}_{len(options_data['options'])}"
+        
+        # Radio buttons con key único - SIN usar session_state para index (causa problemas)
+        selected_index = st.radio(
+            "Selecciona el producto específico:",
+            options=range(len(option_labels)),
+            format_func=lambda x: option_labels[x],
+            key=radio_key,
+            index=0  # Siempre empezar con la primera opción
+        )
+        
+        # El selected_index viene directamente del radio button
+        if selected_index is not None:
+            selected_option = options_data['options'][selected_index]
+            
+            # Mostrar información detallada de la opción seleccionada
+            st.divider()
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.info(f"📦 **Producto:** {selected_option['name']}")
+                st.info(f"🏷️ **Marca:** {selected_option['brand']}")
+            
+            with col2:
+                st.info(f"🔥 **Calorías:** {selected_option['calories_per_100g']} cal/100g")
+                st.info(f"⚖️ **Cantidad:** {options_data['grams']}g")
+            
+            # Calcular calorías totales para la cantidad especificada
+            total_calories = round((selected_option['calories_per_100g'] * options_data['grams']) / 100)
+            st.success(f"🧮 **Total:** {total_calories} calorías para {options_data['grams']}g")
+            
+            # Botón para confirmar la selección con key único
+            confirm_key = f"confirm_food_{options_data['search_term']}_{selected_index}"
+            if st.button(f"✅ Añadir {selected_option['name']}", type="primary", key=confirm_key):
+                # Procesar la selección
+                result = self.nutrition_controller.add_meal_from_selection(options_data, selected_index)
+                
                 if result['success']:
                     st.success(result['message'])
+                    # Limpiar session_state relacionado con la selección
+                    if 'food_options' in st.session_state:
+                        del st.session_state.food_options
+                    # También limpiar cualquier key de radio button relacionado
+                    keys_to_clear = [k for k in st.session_state.keys() if k.startswith('food_radio_')]
+                    for key in keys_to_clear:
+                        del st.session_state[key]
                     st.rerun()
                 else:
                     st.error(result['message'])
-            else:
-                st.warning("Por favor completa todos los campos")
     
     def _render_training_form(self):
         """Renderizar formulario para añadir entrenamiento"""
@@ -171,31 +260,100 @@ class DashboardView:
             st.metric("Minutos Activo", f"{data['total_minutes']} min")
     
     def _render_recent_records(self):
-        """Renderizar registros recientes"""
-        st.subheader("📋 Registros Recientes")
+        """Renderizar registros con selector de fecha"""
+        st.subheader("📋 Registros por Fecha")
         
-        # Obtener registros recientes
-        recent_meals = self.nutrition_controller.get_recent_meals(5)
-        recent_trainings = self.training_controller.get_recent_trainings(5)
+        # Selector de fecha
+        col1, col2 = st.columns([2, 1])
+        with col1:
+            selected_date = st.date_input(
+                "📅 Selecciona una fecha:",
+                value=date.today(),
+                key="date_selector"
+            )
+        
+        with col2:
+            if st.button("🔄 Actualizar", key="refresh_records"):
+                st.rerun()
+        
+        # Convertir fecha a string para la consulta
+        date_str = selected_date.strftime('%Y-%m-%d')
+        
+        # Obtener registros de la fecha seleccionada
+        meals_by_date = self.nutrition_controller.get_meals_by_date(date_str)
+        trainings_by_date = self.training_controller.get_trainings_by_date(date_str)
         
         # Crear tabs para diferentes tipos de registros
         tab1, tab2 = st.tabs(["🍽️ Comidas", "💪 Entrenamientos"])
         
         with tab1:
-            if recent_meals['success'] and recent_meals['data']:
-                meals_df = pd.DataFrame(recent_meals['data'])
-                st.dataframe(meals_df[['food', 'grams', 'calories', 'date']], 
-                           use_container_width=True)
-            else:
-                st.info("No hay comidas registradas")
+            self._render_meals_table(meals_by_date, selected_date)
         
         with tab2:
-            if recent_trainings['success'] and recent_trainings['data']:
-                trainings_df = pd.DataFrame(recent_trainings['data'])
-                st.dataframe(trainings_df[['activity', 'minutes', 'calories_burned', 'date']], 
-                           use_container_width=True)
-            else:
-                st.info("No hay entrenamientos registrados")
+            self._render_trainings_table(trainings_by_date, selected_date)
+    
+    def _render_meals_table(self, meals_result, selected_date):
+        """Renderizar tabla de comidas con botones de borrar"""
+        if meals_result['success'] and meals_result['data']:
+            st.info(f"🍽️ Comidas del {selected_date.strftime('%d/%m/%Y')} ({len(meals_result['data'])} registros)")
+            
+            # Crear DataFrame con columnas traducidas
+            meals_df = pd.DataFrame(meals_result['data'])
+            
+            # Traducir columnas
+            meals_display = meals_df[['id', 'food', 'grams', 'calories', 'proteins', 'carbs', 'fats', 'created_at']].copy()
+            meals_display.columns = ['ID', 'Alimento', 'Gramos', 'Calorías', 'Proteínas', 'Carbohidratos', 'Grasas', 'Hora']
+            
+            # Formatear la hora para mostrar solo HH:MM
+            meals_display['Hora'] = pd.to_datetime(meals_df['created_at']).dt.strftime('%H:%M')
+            
+            # Mostrar cada fila con botón de borrar
+            for idx, row in meals_df.iterrows():
+                col1, col2 = st.columns([4, 1])
+                
+                with col1:
+                    # Mostrar información de la comida
+                    st.write(f"🍽️ **{row['food']}** - {row['grams']}g - {row['calories']} cal - {row['proteins']}g prot - {pd.to_datetime(row['created_at']).strftime('%H:%M')}")
+                
+                with col2:
+                    # Botón de borrar
+                    if st.button("🗑️", key=f"delete_meal_{row['id']}", help="Borrar comida"):
+                        result = self.nutrition_controller.delete_meal(row['id'])
+                        if result['success']:
+                            st.success("Comida eliminada")
+                            st.rerun()
+                        else:
+                            st.error(result['message'])
+        else:
+            st.info(f"📭 No hay comidas registradas para el {selected_date.strftime('%d/%m/%Y')}")
+    
+    def _render_trainings_table(self, trainings_result, selected_date):
+        """Renderizar tabla de entrenamientos con botones de borrar"""
+        if trainings_result['success'] and trainings_result['data']:
+            st.info(f"💪 Entrenamientos del {selected_date.strftime('%d/%m/%Y')} ({len(trainings_result['data'])} registros)")
+            
+            # Crear DataFrame con columnas traducidas
+            trainings_df = pd.DataFrame(trainings_result['data'])
+            
+            # Mostrar cada fila con botón de borrar
+            for idx, row in trainings_df.iterrows():
+                col1, col2 = st.columns([4, 1])
+                
+                with col1:
+                    # Mostrar información del entrenamiento
+                    st.write(f"💪 **{row['activity']}** - {row['minutes']} min - {row['calories_burned']} cal - {pd.to_datetime(row['created_at']).strftime('%H:%M')}")
+                
+                with col2:
+                    # Botón de borrar
+                    if st.button("🗑️", key=f"delete_training_{row['id']}", help="Borrar entrenamiento"):
+                        result = self.training_controller.delete_training(row['id'])
+                        if result['success']:
+                            st.success("Entrenamiento eliminado")
+                            st.rerun()
+                        else:
+                            st.error(result['message'])
+        else:
+            st.info(f"📭 No hay entrenamientos registrados para el {selected_date.strftime('%d/%m/%Y')}")
     
     def _render_macros_chart(self):
         """Renderizar gráfica de macronutrientes"""

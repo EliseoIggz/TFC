@@ -2,6 +2,7 @@
 # =========================================
 # Este archivo maneja la lógica de negocio para comidas
 
+from typing import Dict
 from models.nutrition_model import NutritionModel
 from services.nutrition_api import NutritionAPI
 
@@ -26,6 +27,15 @@ class NutritionController:
             # Obtener información nutricional de la API
             nutrition_info = self.nutrition_api.get_nutrition_info(food, grams)
             
+            # Verificar si hay múltiples opciones
+            if isinstance(nutrition_info, dict) and nutrition_info.get('multiple_options'):
+                return {
+                    'success': False,
+                    'multiple_options': True,
+                    'options_data': nutrition_info,
+                    'message': f'Se encontraron {len(nutrition_info["options"])} opciones para "{food}". Selecciona una opción específica.'
+                }
+            
             # Guardar en la base de datos
             meal_id = self.nutrition_model.add_meal(
                 food, 
@@ -48,6 +58,39 @@ class NutritionController:
                 
         except Exception as e:
             return {'success': False, 'message': f'Error: {str(e)}'}
+    
+    def add_meal_from_selection(self, options_data: Dict, selected_index: int) -> Dict:
+        """Añadir comida desde una opción seleccionada por el usuario"""
+        try:
+            # Obtener información nutricional del producto seleccionado
+            nutrition_info = self.nutrition_api.get_nutrition_from_selected_option(options_data, selected_index)
+            
+            # Obtener datos originales
+            food_name = options_data['options'][selected_index]['name']
+            grams = options_data['grams']
+            
+            # Guardar en la base de datos
+            meal_id = self.nutrition_model.add_meal(
+                food_name,
+                grams,
+                nutrition_info['calories'],
+                nutrition_info['proteins'],
+                nutrition_info['carbs'],
+                nutrition_info['fats']
+            )
+            
+            if meal_id:
+                return {
+                    'success': True,
+                    'message': f'Comida registrada: {food_name} - {grams}g - {nutrition_info["calories"]} cal',
+                    'meal_id': meal_id,
+                    'nutrition_info': nutrition_info
+                }
+            else:
+                return {'success': False, 'message': 'Error al guardar la comida seleccionada'}
+                
+        except Exception as e:
+            return {'success': False, 'message': f'Error procesando selección: {str(e)}'}
     
     def get_all_meals(self):
         """Obtener todas las comidas"""
