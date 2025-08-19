@@ -1,15 +1,15 @@
-# Fitness Tracker - API de Deportes
-# =================================
+# Fitness Tracker - Servicio de Deportes
+# =====================================
 # Este archivo calcula calorías quemadas en actividades deportivas
 
 import config
 from typing import Dict, List, Optional
 
-class TrainingAPI:
-    """API para calcular calorías quemadas en actividades deportivas"""
+class Training:
+    """Servicio para calcular calorías quemadas en actividades deportivas"""
     
     def __init__(self):
-        """Inicializar la API de deportes"""
+        """Inicializar el servicio de deportes"""
         # Base de datos local de deportes y ejercicios con METs reales (SOLO EN ESPAÑOL)
         self.sports_database = {
             # DEPORTES DE EQUIPO

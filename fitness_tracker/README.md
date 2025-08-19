@@ -1,335 +1,195 @@
-# 🏃‍♂️ Fitness Tracker
+# Fitness Tracker
 
 **Seguimiento de entrenamientos y nutrición con dashboard web**
 
-Una aplicación Python para registrar y analizar tu actividad física y alimentación. Desarrollada siguiendo el patrón MVC con Streamlit para la interfaz y SQLite para la base de datos.
+Una aplicación Python completa para registrar y analizar tu actividad física y alimentación. Desarrollada siguiendo el patrón MVC con Streamlit para la interfaz y SQLite para la base de datos local.
 
-## ✨ Características
+## Características Principales
 
-- **📝 Registro de Comidas**: Añade alimentos y obtén información nutricional automática
-- **💪 Seguimiento de Entrenamientos**: Registra actividades físicas y calcula calorías quemadas con **base de datos local de 251 deportes**
-- **🌍 Soporte Bilingüe**: Interfaz en español e inglés con base de datos local
-- **📊 Dashboard Interactivo**: Visualiza tu progreso con gráficas y estadísticas
-- **🗄️ Base de Datos Local**: Almacena todos tus datos en SQLite
-- **🔌 Base de Datos Local**: 251 deportes y actividades con valores MET precisos
-- **📱 Interfaz Web**: Dashboard responsive con Streamlit
+- **Registro de Comidas**: Añade alimentos y obtén información nutricional automática desde la base de datos oficial del USDA
+- **Seguimiento de Entrenamientos**: Registra actividades físicas y calcula calorías quemadas con base de datos local de 251 deportes
+- **Traducción Automática**: Búsqueda de alimentos en español con traducción automática a inglés para la API del USDA
+- **Dashboard Interactivo**: Visualiza tu progreso con gráficas y estadísticas en tiempo real
+- **Base de Datos Local**: Almacena todos tus datos en SQLite sin dependencias externas
+- **Interfaz Web**: Dashboard responsive con Streamlit
 
-## 🆕 Mejoras Recientes
+## Sistema de Nutrición
 
-### 🚀 Base de Datos Local de Deportes
-- **251 Deportes Disponibles**: Base de datos local completa y verificada
-- **Sin Dependencias Externas**: Funciona offline sin conexión a internet
-- **Valores MET Precisos**: Cálculos de calorías basados en estudios científicos
-- **19 Categorías**: Organización profesional por tipo de deporte
+### USDA FoodData Central
+- Base de datos oficial del gobierno de Estados Unidos
+- Más de 300,000 alimentos con información nutricional precisa
+- Datos verificados y actualizados regularmente
+- Información detallada: macronutrientes, vitaminas, minerales
 
-### 🌍 Sistema Bilingüe
-- **Español ↔ Inglés**: Soporte completo en ambos idiomas
-- **Variantes de Nombres**: Fútbol/Soccer, Tenis/Tennis, etc.
-- **Sin Traducción**: Nombres nativos en cada idioma
-- **Búsqueda Inteligente**: Encuentra deportes en ambos idiomas
+### Traducción Automática
+- Traducción español-inglés automática usando OpenAI
+- Detección inteligente del idioma de entrada
+- Búsqueda bilingüe transparente para el usuario
+- Servicio premium con alta precisión y confiabilidad
 
-### ⚡ Rendimiento Óptimo
-- **Respuesta Instantánea**: Sin latencia de red
-- **Sin Límites**: No hay restricciones de peticiones
-- **Datos Consistentes**: Información siempre disponible
-- **Mantenimiento Fácil**: Código limpio y directo
+### Cómo Funciona
+1. El usuario escribe el nombre del alimento en español
+2. El sistema detecta el idioma y traduce automáticamente a inglés
+3. Se busca en la base de datos oficial del USDA
+4. Los resultados se traducen de vuelta al español
+5. El usuario selecciona la opción específica y se registra
 
-## 🚀 Instalación
 
-### Requisitos Previos
-- Python 3.8 o superior
-- pip (gestor de paquetes de Python)
+## Sistema de Deportes
 
-### Pasos de Instalación
+### Base de Datos Local
+- **251 deportes y actividades** disponibles sin conexión a internet
+- **19 categorías** organizadas profesionalmente
+- **Valores MET precisos** basados en estudios científicos
 
-1. **Clonar o descargar el proyecto**
-   ```bash
-   cd fitness_tracker
-   ```
+### Categorías Principales
+- Deportes de Equipo, Acuáticos, Invierno, Combate
+- Deportes de Resistencia, Fuerza, Aventura, Baile
+- Deportes de Precisión, Actividades Fitness y más
 
-2. **Crear y activar entorno virtual (Recomendado)**
-   
-   **Windows:**
-   ```bash
-   python -m venv venv
-   venv\Scripts\activate
-   ```
-   
-   **Linux/Mac:**
-   ```bash
-   python -m venv venv
-   source venv/bin/activate
-   ```
-   
-   **O usar los scripts incluidos:**
-   - Windows: `activate_venv.bat`
-   - Linux/Mac: `./activate_venv.sh`
 
-3. **Instalar dependencias**
-   ```bash
-   pip install -r requirements.txt
-   ```
 
-4. **Ejecutar la aplicación**
-   ```bash
-   streamlit run app.py
-   ```
 
-5. **Abrir en el navegador**
-   - La aplicación se abrirá automáticamente en `http://localhost:8501`
+## Instalación
 
-### 🔧 Instalación Rápida (Windows)
-```bash
-# Opción 1: Script automático (RECOMENDADO)
-# Solo hacer doble clic en: run_app.bat
+Ver archivo `instrucciones.md` para pasos detallados de instalación y ejecución.
 
-# Opción 2: Manual
-activate_venv.bat
-streamlit run app.py
-```
+## Uso de la Aplicación
 
-### 🔧 Instalación Rápida (Linux/Mac)
-```bash
-# Opción 1: Script automático (RECOMENDADO)
-./run_app.sh
+### Dashboard Principal
+- **Perfil del Usuario**: Configura tu nombre y peso para cálculos personalizados
+- **Registro de Comidas**: Busca alimentos y añade comidas con información nutricional completa
+- **Registro de Entrenamientos**: Selecciona deportes de la base de datos y registra tu actividad
+- **Estadísticas**: Visualiza tu balance calórico, macronutrientes y actividad física
 
-# Opción 2: Manual
-./activate_venv.sh
-streamlit run app.py
-```
+### Búsqueda de Alimentos
+1. Escribe el nombre del alimento en español o inglés
+2. El sistema traduce automáticamente y busca en la base de datos del USDA
+3. Selecciona la opción específica de la lista de resultados
+4. Especifica la cantidad en gramos
+5. La comida se registra automáticamente con toda la información nutricional
 
-## 🏃‍♂️ Base de Datos de Deportes
+### Registro de Entrenamientos
+1. Selecciona la categoría de deporte
+2. Elige el deporte específico de la lista
+3. Especifica la duración en minutos
+4. El sistema calcula automáticamente las calorías quemadas basándose en tu peso
+5. El entrenamiento se registra en tu historial
 
-### 📊 Estadísticas
-- **Total de deportes**: 251 actividades
-- **Categorías**: 19 tipos diferentes
-- **Idiomas**: Español + Inglés
-- **Niveles de intensidad**: 5 (muy_baja a muy_alta)
-- **Rango de METs**: 1.5 - 12.0
-
-### 🗂️ Categorías Principales
-- **Deportes de Equipo**: Fútbol, Baloncesto, Tenis, Voleibol
-- **Deportes Acuáticos**: Natación, Surf, Remo, Buceo
-- **Deportes de Invierno**: Esquí, Snowboard, Patinaje
-- **Deportes de Combate**: Boxeo, Karate, MMA, Judo
-- **Deportes de Resistencia**: Running, Ciclismo, Triatlón
-- **Deportes de Fuerza**: CrossFit, Calistenia, Bodybuilding
-- **Deportes de Aventura**: Escalada, Senderismo, Parkour
-- **Deportes de Baile**: Zumba, Salsa, Ballet, Hip Hop
-- **Deportes de Precisión**: Golf, Tiro con Arco, Billar
-- **Actividades Fitness**: Yoga, Pilates, Spinning
-
-### 🔥 Niveles de Intensidad
-- **Muy baja**: Ajedrez (1.5), Dardos (2.0), Billar (2.5)
-- **Baja**: Yoga (2.5), Golf (3.0), Surf (3.0)
-- **Moderada**: Voleibol (4.0), Ciclismo (6.0), Senderismo (6.0)
-- **Alta**: Fútbol (8.0), Tenis (7.0), Escalada (8.0)
-- **Muy alta**: Boxeo (12.0), MMA (11.0), Parkour Extremo (10.0)
-
-## 📖 Uso de la API de Deportes
-
-### Inicialización
-```python
-from services.training_api import TrainingAPI
-
-# Crear instancia
-api = TrainingAPI()
-
-# Verificar deportes disponibles
-total = len(api.sports_database)
-print(f"🏃‍♂️ {total} deportes disponibles")
-```
-
-### Calcular Calorías
-```python
-# Deportes en español
-calories_futbol = api.get_calories_burned("fútbol", 60, 70)
-calories_yoga = api.get_calories_burned("yoga", 45, 65)
-
-# Deportes en inglés
-calories_soccer = api.get_calories_burned("soccer", 60, 70)
-calories_boxing = api.get_calories_burned("boxing", 30, 80)
-
-# Deportes extremos
-calories_parkour = api.get_calories_burned("parkour_extremo", 20, 70)
-```
-
-### Funciones Disponibles
-```python
-# Obtener categorías
-categories = api.get_sport_categories()
-
-# Deportes por intensidad
-high_intensity = api.get_sports_by_intensity("alta")
-
-# Buscar deportes
-results = api.search_sports("cardio")
-```
-
-## 📊 Cálculo de Calorías
-
-### Fórmula MET
-```
-Calorías = MET × Peso (kg) × Tiempo (horas)
-```
-
-### Ejemplos de Cálculo
-```python
-# Fútbol: 60 minutos, peso 70kg
-# MET fútbol = 8.0
-# Calorías = 8.0 × 70 × 1.0 = 560 kcal
-
-# Yoga: 45 minutos, peso 65kg  
-# MET yoga = 2.5
-# Calorías = 2.5 × 65 × 0.75 = 122 kcal
-
-# Boxeo: 30 minutos, peso 80kg
-# MET boxeo = 12.0
-# Calorías = 12.0 × 80 × 0.5 = 480 kcal
-```
-
-## 🏗️ Arquitectura del Proyecto
+## Arquitectura del Proyecto
 
 ```
 fitness_tracker/
-├── 📁 controllers/           # Lógica de negocio
+├── controllers/           # Lógica de negocio
 │   ├── nutrition_controller.py    # Controlador de nutrición
-│   └── training_controller.py     # Controlador de entrenamiento
-├── 📁 data/                 # Base de datos y datos
+│   ├── training_controller.py     # Controlador de entrenamiento
+│   └── user_controller.py         # Controlador de usuario
+├── data/                 # Base de datos
 │   └── fitness_tracker.db   # Base de datos SQLite
-├── 📁 models/               # Modelos de datos
+├── models/               # Modelos de datos
 │   ├── database.py          # Conexión a base de datos
 │   ├── nutrition_model.py   # Modelo de nutrición
-│   └── training_model.py    # Modelo de entrenamiento
-├── 📁 services/             # Servicios y APIs
-│   ├── nutrition_api.py     # API de nutrición
-│   └── training_api.py      # API de deportes (base local)
-├── 📁 views/                # Interfaces de usuario
+│   ├── training_model.py    # Modelo de entrenamiento
+│   └── user_model.py        # Modelo de usuario
+├── services/             # Servicios y APIs
+│   ├── nutrition_api.py     # API de nutrición USDA
+│   ├── openai_translation_service.py # Servicio de traducción OpenAI
+│   └── training.py          # Servicio de deportes (base local)
+├── views/                # Interfaces de usuario
 │   └── dashboard_view.py    # Vista del dashboard
-├── 📁 utils/                # Utilidades
+├── utils/                # Utilidades
 │   ├── check_dependencies.py # Verificación de dependencias
 │   └── helpers.py           # Funciones auxiliares
-├── 📁 tests/                # Pruebas unitarias
+├── tests/                # Pruebas unitarias
 ├── app.py                   # Aplicación principal
 ├── config.py                # Configuración
 └── requirements.txt         # Dependencias
 ```
 
-## 🧪 Testing
+## Rendimiento del Sistema
 
-### Probar la Base de Deportes
-```bash
-cd fitness_tracker
-python test_expanded_sports.py
-```
+- Funciona offline para funcionalidades básicas
+- Búsqueda eficiente en bases de datos locales
+- Código limpio y mantenible
 
-### Probar Funcionalidades
-```bash
-# Probar cálculo de calorías
-python -c "
-from services.training_api import TrainingAPI
-api = TrainingAPI()
-calories = api.get_calories_burned('fútbol', 30, 70)
-print(f'Calorías: {calories}')
-"
-```
+## Casos de Uso
 
-## 🌟 Ventajas de la Base Local
+### Uso Actual (Entorno Local)
+- **Seguimiento personal**: Registro individual de comidas y entrenamientos
+- **Dashboard privado**: Visualización de progreso personal
+- **Base de datos local**: Almacenamiento en SQLite del usuario
 
-### ✅ **Sin Dependencias Externas**
-- No requiere conexión a internet
-- No hay límites de peticiones
-- No hay latencia de red
-- No hay costos de APIs
+### Escalabilidad Futura
+El sistema está diseñado para poder escalar a un entorno de producción:
 
-### ✅ **Datos Consistentes**
-- 251 deportes verificados
-- METs precisos y fiables
-- Categorización profesional
-- Sin cambios inesperados
+- **Despliegue en servidor**: La arquitectura MVC permite migrar a un servidor web
+- **Base de datos multi-usuario**: Cambiar SQLite por PostgreSQL o MySQL
+- **Sistema de autenticación**: Implementar login y gestión de usuarios
+- **API REST**: Exponer funcionalidades como servicio web
+- **Aplicación web**: Acceso desde cualquier dispositivo con navegador
+- **Aplicación móvil**: Crear apps nativas usando la API del servidor
 
-### ✅ **Rendimiento Óptimo**
-- Respuesta instantánea
-- Búsqueda eficiente
-- Sin timeouts ni errores de red
-- Funciona offline
+### Aplicaciones Potenciales
+- **Gimnasios**: Seguimiento de clientes y planificación de entrenamientos
+- **Entrenadores personales**: Gestión de múltiples clientes
+- **Centros deportivos**: Control de actividades y estadísticas
+- **Aplicaciones de fitness**: Integración con wearables y apps móviles
 
-### ✅ **Cobertura Completa**
-- Deportes tradicionales y modernos
-- Actividades de fitness y diarias
-- Deportes extremos y de aventura
-- Soporte bilingüe completo
-
-## 🎯 Casos de Uso
-
-### 🏋️‍♂️ **Gimnasios y Centros Deportivos**
-- Cálculo de calorías para clientes
-- Planificación de entrenamientos
-- Seguimiento de progreso
-
-### 🏃‍♀️ **Entrenadores Personales**
-- Programas de ejercicios personalizados
-- Estimación de gasto calórico
-- Recomendaciones de intensidad
-
-### 📱 **Aplicaciones de Fitness**
-- Integración en apps móviles
-- Widgets de calorías
-- Historial de actividades
-
-### 🏫 **Educación Física**
-- Programas escolares
-- Evaluación de actividades
-- Concienciación sobre ejercicio
-
-## 🔧 Personalización
+## Personalización
 
 ### Agregar Nuevos Deportes
 ```python
-# En training_api.py, agregar a sports_database
+# En services/training.py, agregar a sports_database
 'nombre_deporte': {
     'name': 'Nombre del Deporte',
     'met': 7.0,  # Valor MET del deporte
-    'category': 'categoria_deporte',
-    'intensity': 'moderada'  # muy_baja, baja, moderada, alta, muy_alta
+    'category': 'categoria_deporte'
 }
 ```
 
 ### Modificar Valores MET
 ```python
 # Cambiar el valor MET de un deporte existente
-self.sports_database['futbol']['met'] = 8.5  # Ajustar según estudios
+self.sports_database['futbol']['met'] = 8.5
 ```
 
-## 📈 Estadísticas de la Base de Datos
+## Testing
 
-- **Total de deportes**: 251
-- **Categorías**: 19
-- **Idiomas**: 2 (Español + Inglés)
-- **Niveles de intensidad**: 5
+### Probar la Base de Deportes
+```bash
+cd fitness_tracker
+python tests/test_expanded_sports.py
+```
+
+### Probar el Sistema de Nutrición
+```bash
+python tests/test_usda_nutrition.py
+```
+
+### Probar Funcionalidades Básicas
+```python
+# Probar cálculo de calorías
+from services.training import Training
+api = Training()
+calories = api.get_calories_burned('fútbol', 30, 70)
+print(f'Calorías: {calories}')
+```
+
+## Consideraciones Importantes
+
+### Límites de las APIs
+- **USDA sin API Key**: 3,600 peticiones por día
+- **USDA con API Key**: 10,000 peticiones por día
+- **OpenAI**: Límites según tu plan de suscripción
+
+### Dependencias de Internet
+- **USDA API**: Requiere conexión a internet
+- **OpenAI**: Requiere conexión a internet
+- **Sistema offline**: Funciona para datos ya cargados y cálculos de deportes
+
+## Estadísticas del Sistema
+
+- **Total de deportes**: 251 actividades
+- **Categorías de deportes**: 19 tipos diferentes
+- **Alimentos disponibles**: 300,000+ en base de datos USDA
 - **Rango de METs**: 1.5 - 12.0
-- **Deportes más intensos**: Boxeo (12.0), MMA (11.0), Parkour Extremo (10.0)
-- **Deportes menos intensos**: Ajedrez (1.5), Dardos (2.0), Billar (2.5)
-
-## 🎉 Conclusión
-
-**Fitness Tracker** demuestra que una **base de datos local bien diseñada** puede ser **más efectiva** que depender de APIs externas:
-
-- ✅ **Sin costos** de APIs
-- ✅ **Sin límites** de peticiones  
-- ✅ **Sin problemas** de conectividad
-- ✅ **Con datos** verificados y precisos
-- ✅ **Con cobertura** completa de deportes
-
-¡Perfecto para demostrar dominio de **estructuras de datos locales** y **cálculos precisos** en tu trabajo! 🚀
-
-## 📞 Soporte
-
-Si tienes preguntas o necesitas ayuda:
-- Revisa la documentación en `README_SPORT_API.md`
-- Ejecuta las pruebas incluidas
-- Consulta el código fuente para ejemplos
-
-## 📄 Licencia
-
-Este proyecto es de uso educativo y personal.

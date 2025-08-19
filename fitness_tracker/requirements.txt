@@ -1,5 +1,5 @@
 # Fitness Tracker - Dependencias del proyecto
-# ===========================================
+# =========================================
 
 # Framework web para el dashboard
 streamlit>=1.28.0
@@ -17,3 +17,9 @@ pytest-cov>=4.1.0
 
 # Librerías adicionales útiles
 python-dateutil>=2.8.0
+
+# Nota: Para usar la API de USDA FoodData Central, obtener una API key gratuita en:
+# https://fdc.nal.usda.gov/api-key-signup.html
+# 
+# OpenAI se usa para traducción automática (requiere API key)
+# Obtener API key en: https://platform.openai.com/api-keys

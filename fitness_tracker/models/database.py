@@ -53,14 +53,55 @@ class Database:
             )
         ''')
 
-        # Perfil de usuario (persistencia de nombre y peso)
+        # Perfil de usuario (persistencia de nombre, peso y objetivo)
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS user_profile (
                 id INTEGER PRIMARY KEY CHECK (id = 1),
                 name TEXT,
                 weight REAL,
+                objetivo TEXT DEFAULT 'mantener_peso',
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL
+            )
+        ''')
+        
+        # Añadir columna objetivo si no existe (para tablas existentes)
+        try:
+            cursor.execute("ALTER TABLE user_profile ADD COLUMN objetivo TEXT DEFAULT 'mantener_peso'")
+            self.conn.commit()
+        except sqlite3.OperationalError:
+            # La columna ya existe, no hacer nada
+            pass
+        
+        # Tabla de favoritos de comidas
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS food_favorites (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                food_name TEXT NOT NULL,
+                display_name TEXT NOT NULL,
+                calories_per_100g INTEGER NOT NULL,
+                proteins_per_100g REAL,
+                carbs_per_100g REAL,
+                fats_per_100g REAL,
+                brand_owner TEXT,
+                category TEXT,
+                fdc_id TEXT,
+                data_type TEXT,
+                created_at TEXT NOT NULL,
+                usage_count INTEGER DEFAULT 1
+            )
+        ''')
+        
+        # Tabla de favoritos de ejercicios
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS exercise_favorites (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                activity_name TEXT NOT NULL,
+                activity_key TEXT NOT NULL,
+                met_value REAL NOT NULL,
+                category TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                usage_count INTEGER DEFAULT 1
             )
         ''')
         

@@ -1,506 +1,210 @@
-# Fitness Tracker - API Real de Nutrición (Open Food Facts)
+# Fitness Tracker - API de Nutrición USDA FoodData Central
 # ========================================================
-# Este archivo integra la API real de Open Food Facts para obtener información nutricional
+# Este archivo integra la API oficial de USDA para obtener información nutricional precisa
 
 import requests
 import config
-from typing import Dict, List, Optional
-import time
-import json
+import logging
+from typing import Dict, List, Optional, Any
+from .openai_translation_service import OpenAITranslationService
+
+# Configurar logging
+logger = logging.getLogger(__name__)
 
 class NutritionAPI:
-    """API real para obtener información nutricional de alimentos desde Open Food Facts"""
+    """API para obtener información nutricional desde USDA FoodData Central"""
     
     def __init__(self):
-        """Inicializar la API real con configuración optimizada"""
-        # Configuración por defecto ya que las configuraciones externas se eliminaron
-        self.api_url = "https://world.openfoodfacts.org/cgi/search.pl"
-        self.timeout = 10  # Timeout por defecto en segundos
-        self.use_real_api = True  # Siempre usar API real
+        """Inicializar la API de USDA"""
+        self.api_key = config.USDA_API_KEY
+        self.base_url = config.USDA_API_BASE_URL
+        self.timeout = 15
+        self.translation_service = OpenAITranslationService()
         
-        # Headers optimizados para mejor rendimiento
+        # Headers para las peticiones
         self.headers = {
-            'User-Agent': 'FitnessTrackerApp/1.0 (https://github.com/fitness-tracker)',
-            'Accept': 'application/json',
-            'Accept-Language': 'es,en;q=0.9'
+            'User-Agent': 'FitnessTrackerApp/1.0',
+            'Accept': 'application/json'
         }
+        
+        # Añadir API key si está disponible
+        if self.api_key:
+            self.headers['X-API-Key'] = self.api_key
+        
+        logger.info("NutritionAPI inicializado")
     
-    def _make_api_request(self, params: Dict, is_fresh_food: bool = False) -> Optional[Dict]:
-        """Realizar petición optimizada a Open Food Facts API"""
+    def _make_api_request(self, endpoint: str, params: Dict = None) -> Optional[Dict]:
+        """Realizar petición a la API de USDA"""
         try:
-            # Parámetros base optimizados para España y español
-            default_params = {
-                'search_terms': '',
-                'search_simple': 1,
-                'action': 'process',
-                'json': 1,
-                'page_size': 20,  # Aumentar para más opciones
-                'page': 1,
-                # Optimizaciones para España
-                'lc': 'es',  # Idioma español
-                'cc': 'es',  # País España
-                'nocache': 1,  # Sin caché para datos frescos
-                # Ordenar por calidad de datos nutricionales
-                'sort_by': 'nutrition_grade_fr',
-                # Campos específicos para optimizar transferencia
-                'fields': 'product_name_es,product_name,nutriments,categories_tags,labels_tags,brands,image_url,nutrition_grade_fr,ingredients_text_es,ingredients_text'
-            }
+            url = f"{self.base_url}/{endpoint}"
             
-            # Filtros específicos para alimentos frescos
-            if is_fresh_food:
-                fresh_params = {
-                    # Sin aditivos
-                    'additives': 'without',
-                    # Categorías de alimentos frescos
-                    'tagtype_0': 'categories',
-                    'tag_0': 'fresh-vegetables',
-                    'tag_contains_0': 'contains',
-                    # Excluir procesados
-                    'tagtype_1': 'categories', 
-                    'tag_1': 'processed-foods',
-                    'tag_contains_1': 'does_not_contain'
-                }
-                default_params.update(fresh_params)
+            # Parámetros por defecto - USDA requiere api_key en parámetros, no en headers
+            default_params = {
+                'api_key': self.api_key,
+                'format': 'json'
+            } if self.api_key else {'format': 'json'}
             
             # Combinar parámetros
-            search_params = {**default_params, **params}
+            if params:
+                default_params.update(params)
             
-            # Log de debug con query generada
-            query_example = f"Query: {search_params.get('search_terms', 'N/A')}"
-            if is_fresh_food:
-                query_example += " [MODO FRESCO]"
-            print(f"🔍 {query_example}")
-            
-            # Log detallado para depuración
-            if is_fresh_food:
-                print(f"📋 Filtros aplicados: sin aditivos, categoría=fresh-vegetables, excluye=processed-foods")
+            logger.info(f"Realizando petición a: {url}")
+            logger.debug(f"Parámetros: {default_params}")
             
             response = requests.get(
-                self.api_url, 
-                params=search_params,
+                url,
+                params=default_params,
                 headers=self.headers,
                 timeout=self.timeout
             )
             
             if response.status_code == 200:
                 data = response.json()
-                
-                if 'products' in data:
-                    count = len(data['products'])
-                    print(f"📊 Productos encontrados: {count}")
-                    
-                    # Log de ejemplos para depuración
-                    if count > 0:
-                        first_product = data['products'][0]
-                        product_name = first_product.get('product_name_es', first_product.get('product_name', 'Sin nombre'))
-                        categories = first_product.get('categories_tags', [])
-                        print(f"📝 Ejemplo: '{product_name}' - Categorías: {categories[:3] if categories else 'N/A'}")
-                    
-                    if count == 0:
-                        print(f"⚠️  Sin resultados para: {search_params.get('search_terms', 'N/A')}")
-                else:
-                    print(f"📊 Respuesta recibida: {type(data)}")
-                
+                logger.info(f"Respuesta exitosa de USDA API")
                 return data
-                
+            elif response.status_code == 401:
+                logger.error("Error de autenticación en USDA API - verificar API key")
+                return None
+            elif response.status_code == 403:
+                logger.error("Error de autorización en USDA API - verificar API key")
+                return None
             elif response.status_code == 429:
-                print("⏳ Rate limit alcanzado, esperando...")
-                time.sleep(2)
+                logger.warning("Rate limit alcanzado en USDA API")
                 return None
             else:
-                print(f"❌ Error API ({response.status_code}): {response.text[:100]}")
+                logger.error(f"Error en USDA API: {response.status_code} - {response.text[:200]}")
                 return None
                 
         except requests.exceptions.Timeout:
-            print(f"⏰ Timeout después de {self.timeout}s")
+            logger.error("Timeout en petición a USDA API")
             return None
         except Exception as e:
-            print(f"❌ Error en petición API: {e}")
+            logger.error(f"Error inesperado en petición a USDA API: {e}")
+            return None
+    
+    def search_foods(self, query: str, page_size: int = 25) -> Optional[Dict]:
+        """Buscar alimentos en la base de datos de USDA"""
+        try:
+            # FLUJO SIMPLE: Español → Inglés → Buscar en USDA
+            english_query = query
+            
+            # 1. Traducir la consulta a inglés usando OpenAI
+            if self.translation_service.is_available():
+                try:
+                    translated_query = self.translation_service.translate_to_english(query)
+                    if translated_query and translated_query.lower() != query.lower():
+                        english_query = translated_query
+                        logger.info(f"Consulta traducida: '{query}' → '{english_query}'")
+                    else:
+                        logger.info(f"Consulta ya en inglés: '{query}'")
+                except Exception as e:
+                    logger.warning(f"Error en traducción de consulta: {e}")
+                    logger.info(f"Usando consulta original: '{query}'")
+            
+            # 2. Buscar en USDA usando la consulta en inglés
+            logger.info(f"Buscando en USDA: '{english_query}'")
+            
+            params = {
+                'query': english_query,
+                'pageSize': page_size,
+                'dataType': ['Foundation', 'SR Legacy', 'Survey (FNDDS)'],
+                'sortBy': 'dataType.keyword',
+                'sortOrder': 'asc'
+            }
+            
+            response = self._make_api_request('foods/search', params)
+            
+            if response and 'foods' in response and response['foods']:
+                logger.info(f"Resultados encontrados: {len(response['foods'])}")
+                return response
+            else:
+                logger.warning(f"No se encontraron resultados para '{english_query}'")
+                return None
+            
+        except Exception as e:
+            logger.error(f"Error buscando alimentos: {e}")
+            return None
+    
+
+    def get_food_details(self, fdc_id: int) -> Optional[Dict]:
+        """Obtener detalles completos de un alimento por su FDC ID"""
+        try:
+            logger.info(f"Obteniendo detalles del alimento FDC ID: {fdc_id}")
+            
+            response = self._make_api_request(f'food/{fdc_id}')
+            return response
+            
+        except Exception as e:
+            logger.error(f"Error obteniendo detalles del alimento: {e}")
             return None
     
     def get_nutrition_info(self, food: str, grams: float) -> Dict:
-        """Obtener información nutricional optimizada desde Open Food Facts"""
+        """Obtener información nutricional de un alimento"""
         try:
-            # Determinar si es un alimento fresco
-            is_fresh = self._is_fresh_food(food)
+            logger.info(f"Obteniendo nutrición para: '{food}' - {grams}g")
             
-            # Estrategia de búsqueda progresiva optimizada
-            search_terms = self._get_progressive_search_terms(food)
+            # Buscar el alimento
+            search_results = self.search_foods(food)
             
-            for i, search_term in enumerate(search_terms):
-                print(f"🔍 Intento {i+1}/{len(search_terms)}: '{search_term}'")
-                
-                search_params = {
-                    'search_terms': search_term,
-                    'page_size': 10
-                }
-                
-                # Usar modo fresco solo en los primeros intentos para verduras/frutas
-                use_fresh_mode = is_fresh and i < 2
-                
-                api_response = self._make_api_request(search_params, is_fresh_food=use_fresh_mode)
-                
-                if api_response and 'products' in api_response and api_response['products']:
-                    # Filtrar y priorizar con scoring avanzado
-                    filtered_products = self._filter_and_prioritize_products_advanced(
-                        api_response['products'], food, is_fresh
-                    )
-                    
-                    if filtered_products:
-                        if len(filtered_products) > 1:
-                            return self._show_product_options(filtered_products[:5], food, grams)
-                        else:
-                            best_product = filtered_products[0]
-                            nutrition_data = self._extract_nutrition_data(best_product, grams)
-                            product_name = best_product.get('product_name_es', best_product.get('product_name', food))
-                            print(f"✅ '{food}' → '{product_name}': {nutrition_data['calories']} cal")
-                            return nutrition_data
+            if not search_results or 'foods' not in search_results:
+                raise ValueError(f"No se encontraron resultados para '{food}' en la base de datos de USDA")
             
-            # Si no se encuentra después de todos los intentos
-            raise ValueError(f"❌ No se encontró '{food}' en la base de datos de Open Food Facts. Prueba con un nombre más específico o diferente.")
-                
+            foods = search_results['foods']
+            if not foods:
+                raise ValueError(f"No se encontraron alimentos para '{food}'")
+            
+            # Si hay múltiples resultados, mostrar opciones
+            if len(foods) > 1:
+                return self._show_food_options(foods, food, grams)
+            
+            # Si solo hay un resultado, usarlo directamente
+            selected_food = foods[0]
+            nutrition_data = self._extract_nutrition_data(selected_food, grams)
+            
+            # Traducir nombre al español usando OpenAI
+            spanish_name = self.translation_service.translate_to_spanish(selected_food.get('description', food))
+            if spanish_name:
+                nutrition_data['product_name'] = spanish_name
+            else:
+                nutrition_data['product_name'] = selected_food.get('description', food)
+            
+            logger.info(f"Nutrición obtenida: {nutrition_data['calories']} cal para {grams}g")
+            return nutrition_data
+            
         except ValueError as ve:
             raise ve
         except Exception as e:
-            raise ValueError(f"❌ Error conectando con la base de datos: {str(e)}")
+            logger.error(f"Error obteniendo nutrición: {e}")
+            raise ValueError(f"Error conectando con la base de datos de USDA: {str(e)}")
     
-    def _get_progressive_search_terms(self, food: str) -> List[str]:
-        """Obtener términos de búsqueda progresiva: específico → general"""
-        food_lower = food.lower().strip()
-        search_terms = []
-        
-        # Mapeo optimizado con enfoque en alimentos frescos
-        progressive_searches = {
-            # === TUBÉRCULOS Y CEREALES ===
-            'patatas': ['patata fresca cruda', 'patata', 'papa fresca', 'papa'],
-            'patata': ['patata fresca cruda', 'patata', 'papa'],
-            'papa': ['papa fresca', 'patata', 'papa'],
-            'papas': ['patata fresca cruda', 'patata', 'papa'],
-            'arroz': ['arroz blanco', 'arroz'],
-            'pasta': ['pasta', 'macarrones'],
-            'pan': ['pan blanco', 'pan'],
-            'avena': ['avena', 'oats'],
-            'quinoa': ['quinoa', 'quinua'],
-            
-            # === CARNES ===
-            'ternera': ['ternera filete', 'filete ternera', 'ternera fresca', 'beef fillet', 'beef steak', 'ternera'],
-            'filete': ['filete ternera', 'filete de ternera', 'beef fillet', 'filete'],
-            'pollo': ['pollo pechuga', 'pechuga pollo', 'pollo fresco', 'chicken breast', 'chicken fresh', 'pollo'],
-            'cerdo': ['cerdo lomo', 'lomo cerdo', 'cerdo fresco', 'pork loin', 'pork fresh', 'cerdo'],
-            'cordero': ['cordero chuleta', 'chuleta cordero', 'cordero fresco', 'lamb chop', 'lamb fresh', 'cordero'],
-            'pavo': ['pavo pechuga', 'pechuga pavo', 'pavo fresco', 'turkey breast', 'turkey fresh', 'pavo'],
-            'conejo': ['conejo carne', 'carne conejo', 'conejo fresco', 'rabbit meat', 'rabbit fresh', 'conejo'],
-            
-            # === PESCADOS Y MARISCOS ===
-            'pescado': ['pescado fresco', 'pescado', 'fish fresh'],
-            'salmón': ['salmón fresco', 'salmón', 'salmon fresh'],
-            'atún': ['atún fresco', 'atún', 'tuna fresh'],
-            'merluza': ['merluza fresca', 'merluza', 'hake'],
-            'bacalao': ['bacalao fresco', 'bacalao', 'cod'],
-            'sardinas': ['sardinas frescas', 'sardinas', 'sardines'],
-            'gambas': ['gambas frescas', 'gambas', 'shrimp fresh'],
-            
-            # === LÁCTEOS ===
-            'leche': ['leche entera', 'leche'],
-            'yogur': ['yogur natural', 'yogur'],
-            'queso': ['queso fresco', 'queso'],
-            'mantequilla': ['mantequilla', 'butter'],
-            'nata': ['nata', 'cream'],
-            
-            # === HUEVOS ===
-            'huevo': ['huevo fresco', 'huevo'],
-            'huevos': ['huevos frescos', 'huevo'],
-            
-            # === VERDURAS FRESCAS ===
-            'brócoli': ['brócoli fresco crudo', 'brócoli fresco', 'brócoli orgánico', 'brócoli', 'broccoli fresh'],
-            'tomate': ['tomate fresco', 'tomate', 'tomato fresh'],
-            'tomates': ['tomate fresco', 'tomate'],
-            'cebolla': ['cebolla fresca', 'cebolla', 'onion fresh'],
-            'cebollas': ['cebolla fresca', 'cebolla'],
-            'zanahoria': ['zanahoria fresca', 'zanahoria', 'carrot fresh'],
-            'zanahorias': ['zanahoria fresca', 'zanahoria'],
-            'calabacín': ['calabacín fresco', 'calabacín', 'zucchini fresh'],
-            'espárragos': ['espárragos frescos', 'espárragos', 'asparagus fresh'],
-            'espinacas': ['espinacas frescas', 'espinacas', 'spinach fresh'],
-            'lechuga': ['lechuga fresca', 'lechuga', 'lettuce fresh'],
-            'pepino': ['pepino fresco', 'pepino', 'cucumber fresh'],
-            'pimiento': ['pimiento fresco', 'pimiento', 'pepper fresh'],
-            'berenjena': ['berenjena fresca', 'berenjena', 'eggplant fresh'],
-            'apio': ['apio fresco', 'apio', 'celery fresh'],
-            'col': ['col fresca', 'col', 'cabbage fresh'],
-            'coliflor': ['coliflor fresca', 'coliflor', 'cauliflower fresh'],
-            
-            # === FRUTAS FRESCAS ===
-            'manzana': ['manzana fresca', 'manzana', 'apple fresh'],
-            'manzanas': ['manzana fresca', 'manzana'],
-            'plátano': ['plátano fresco', 'plátano', 'banana fresh'],
-            'plátanos': ['plátano fresco', 'plátano'],
-            'naranja': ['naranja fresca', 'naranja', 'orange fresh'],
-            'naranjas': ['naranja fresca', 'naranja'],
-            'pera': ['pera fresca', 'pera', 'pear fresh'],
-            'peras': ['pera fresca', 'pera'],
-            'fresa': ['fresas frescas', 'fresas', 'strawberry fresh'],
-            'fresas': ['fresas frescas', 'fresas'],
-            'uva': ['uvas frescas', 'uvas', 'grape fresh'],
-            'uvas': ['uvas frescas', 'uvas'],
-            'kiwi': ['kiwi fresco', 'kiwi'],
-            'piña': ['piña fresca', 'piña', 'pineapple fresh'],
-            'melón': ['melón fresco', 'melón', 'melon fresh'],
-            'sandía': ['sandía fresca', 'sandía', 'watermelon fresh'],
-            'aguacate': ['aguacate fresco', 'aguacate', 'avocado fresh'],
-            'limón': ['limón fresco', 'limón', 'lemon fresh'],
-            
-            # === LEGUMBRES ===
-            'lentejas': ['lentejas', 'lentils'],
-            'garbanzos': ['garbanzos', 'chickpeas'],
-            'alubias': ['alubias', 'beans'],
-            'judías': ['judías', 'beans'],
-            
-            # === FRUTOS SECOS ===
-            'almendras': ['almendras', 'almonds'],
-            'nueces': ['nueces', 'walnuts'],
-            'pistachos': ['pistachos', 'pistachios'],
-            'cacahuetes': ['cacahuetes', 'peanuts'],
-            
-            # === ACEITES Y GRASAS ===
-            'aceite': ['aceite oliva', 'aceite'],
-            'oliva': ['aceitunas', 'oliva']
-        }
-        
-        # Si tenemos búsquedas específicas para este alimento
-        if food_lower in progressive_searches:
-            search_terms = progressive_searches[food_lower]
-        else:
-            # Para otros alimentos, usar el término original
-            search_terms = [food]
-        
-        print(f"🔍 Estrategia de búsqueda para '{food}': {search_terms}")
-        return search_terms
-    
-    def _is_fresh_food(self, food: str) -> bool:
-        """Determinar si un alimento es fresco (verdura/fruta)"""
-        fresh_foods = {
-            'brócoli', 'tomate', 'cebolla', 'zanahoria', 'calabacín', 'espárragos',
-            'espinacas', 'lechuga', 'pepino', 'pimiento', 'berenjena', 'apio',
-            'col', 'coliflor', 'manzana', 'plátano', 'naranja', 'pera', 'fresa',
-            'uva', 'kiwi', 'piña', 'melón', 'sandía', 'aguacate', 'limón',
-            'patata', 'papa', 'patatas'
-        }
-        return food.lower().strip() in fresh_foods
-    
-    def _safe_float(self, value) -> float:
-        """Convertir valor a float de forma segura"""
-        if value is None:
-            return 0.0
-        try:
-            return float(value)
-        except (ValueError, TypeError):
-            return 0.0
-    
-    def _filter_and_prioritize_products_advanced(self, products: List[Dict], original_search: str, is_fresh: bool = False) -> List[Dict]:
-        """Filtrar y priorizar productos con scoring avanzado"""
-        if not products:
-            return []
-        
-        scored_products = []
-        original_search_lower = original_search.lower()
-        
-        for product in products:
-            score = 0.0
-            product_name = product.get('product_name_es', product.get('product_name', ''))
-            product_name_lower = product_name.lower()
-            
-            # === SCORING POR NOMBRE ===
-            # Coincidencia exacta del nombre
-            if original_search_lower in product_name_lower:
-                score += 50.0
-            
-            # Coincidencia de palabras clave
-            search_words = original_search_lower.split()
-            for word in search_words:
-                if len(word) > 2 and word in product_name_lower:
-                    score += 10.0
-            
-            # === SCORING POR CALIDAD DE DATOS ===
-            nutriments = product.get('nutriments', {})
-            
-            # Priorizar productos con calorías completas
-            calories = self._safe_float(nutriments.get('energy-kcal_100g', nutriments.get('energy_100g')))
-            if calories > 0:
-                score += 30.0
-                # Bonus por calorías realistas según el tipo de alimento
-                if 'ternera' in product_name_lower or 'beef' in product_name_lower:
-                    if 200 <= calories <= 400:  # Rango realista para ternera
-                        score += 20.0
-                    elif calories < 200:  # Demasiado bajo
-                        score -= 15.0
-                elif 'pollo' in product_name_lower or 'chicken' in product_name_lower:
-                    if 150 <= calories <= 250:  # Rango realista para pollo
-                        score += 20.0
-                    elif calories < 150:
-                        score -= 15.0
-                elif 'pescado' in product_name_lower or 'fish' in product_name_lower:
-                    if 100 <= calories <= 200:  # Rango realista para pescado
-                        score += 20.0
-                    elif calories < 100:
-                        score -= 15.0
-            
-            # Bonus por macronutrientes completos
-            proteins = self._safe_float(nutriments.get('proteins_100g', 0))
-            carbs = self._safe_float(nutriments.get('carbohydrates_100g', 0))
-            fats = self._safe_float(nutriments.get('fat_100g', 0))
-            
-            if proteins > 0:
-                score += 15.0
-            if carbs > 0:
-                score += 10.0
-            if fats > 0:
-                score += 10.0
-            
-            # === SCORING POR CATEGORÍA ===
-            categories = product.get('categories_tags', [])
-            category_text = ' '.join(categories).lower()
-            
-            # Priorizar categorías relevantes
-            if 'meats' in category_text or 'carnes' in category_text:
-                score += 25.0
-            if 'fresh' in category_text or 'fresco' in category_text:
-                score += 20.0
-            if 'organic' in category_text or 'organico' in category_text:
-                score += 15.0
-            
-            # Penalizar categorías no deseadas
-            if 'processed' in category_text or 'procesado' in category_text:
-                score -= 20.0
-            if 'snacks' in category_text or 'aperitivos' in category_text:
-                score -= 15.0
-            
-            # === SCORING POR MARCA ===
-            brand = product.get('brands', '').lower()
-            if brand and brand != 'sin marca':
-                score += 5.0
-            
-            # === SCORING POR IDIOMA ===
-            if product.get('product_name_es'):
-                score += 10.0
-            
-            # === FILTROS DE CALIDAD ===
-            # Excluir productos con calorías extremadamente bajas para carnes
-            if ('ternera' in product_name_lower or 'beef' in product_name_lower) and calories < 150:
-                score -= 50.0  # Penalización fuerte
-            if ('pollo' in product_name_lower or 'chicken' in product_name_lower) and calories < 100:
-                score -= 50.0
-            if ('pescado' in product_name_lower or 'fish' in product_name_lower) and calories < 80:
-                score -= 50.0
-            
-            # Añadir producto con su score
-            scored_products.append({
-                'product': product,
-                'score': score,
-                'calories': calories,
-                'proteins': proteins,
-                'carbs': carbs,
-                'fats': fats
-            })
-        
-        # Ordenar por score descendente
-        scored_products.sort(key=lambda x: x['score'], reverse=True)
-        
-        # Log de scoring para depuración
-        print(f"🏆 Top 3 productos por score:")
-        for i, scored in enumerate(scored_products[:3]):
-            product = scored['product']
-            name = product.get('product_name_es', product.get('product_name', 'Sin nombre'))
-            print(f"   {i+1}. Score: {scored['score']:.1f} - '{name}' - {scored['calories']} cal/100g")
-        
-        # Devolver solo los productos originales (sin el scoring)
-        return [scored['product'] for scored in scored_products]
-    
-    def _calculate_product_score(self, product: Dict, search_term: str, is_fresh: bool) -> float:
-        """Calcular puntuación de relevancia para un producto"""
-        score = 0.0
-        
-        product_name = product.get('product_name_es', product.get('product_name', '')).lower()
-        categories = product.get('categories_tags', [])
-        labels = product.get('labels_tags', [])
-        
-        # Score base: contiene el término de búsqueda
-        if search_term in product_name:
-            score += 10.0
-        elif any(word in product_name for word in search_term.split()):
-            score += 5.0
-        else:
-            return 0.0  # Sin relevancia básica
-        
-        # Bonus por palabras clave de calidad
-        quality_keywords = ['fresco', 'crudo', 'natural', 'orgánico', 'bio', 'ecológico']
-        for keyword in quality_keywords:
-            if keyword in product_name:
-                score += 3.0
-            if any(keyword in label for label in labels):
-                score += 2.0
-        
-        # Bonus específico para alimentos frescos
-        if is_fresh:
-            fresh_categories = ['vegetables', 'fresh-vegetables', 'fresh-produce', 'fruits', 'fresh-fruits']
-            for category in categories:
-                if any(fresh_cat in category for fresh_cat in fresh_categories):
-                    score += 5.0
-                    break
-        
-        # Penalización por procesados
-        processed_keywords = ['sopa', 'caldo', 'conserva', 'enlatado', 'preparado', 'instant']
-        for keyword in processed_keywords:
-            if keyword in product_name:
-                score -= 5.0
-        
-        processed_categories = ['processed', 'canned', 'frozen-ready-meals', 'instant']
-        for category in categories:
-            if any(proc_cat in category for proc_cat in processed_categories):
-                score -= 3.0
-        
-        # Bonus por información nutricional completa
-        nutriments = product.get('nutriments', {})
-        if nutriments.get('energy-kcal_100g') or nutriments.get('energy_100g'):
-            score += 1.0
-        if nutriments.get('proteins_100g'):
-            score += 1.0
-        
-        # Penalización si no tiene información nutricional
-        if not (nutriments.get('energy-kcal_100g') or nutriments.get('energy_100g') or nutriments.get('energy-kj_100g')):
-            return 0.0
-        
-        return max(0.0, score)
-    
-    def _show_product_options(self, products: List[Dict], search_term: str, grams: float) -> Dict:
-        """Devolver opciones estructuradas para que el usuario pueda elegir"""
-        print(f"\n🔍 Se encontraron {len(products)} productos para '{search_term}':")
+    def _show_food_options(self, foods: List[Dict], search_term: str, grams: float) -> Dict:
+        """Mostrar opciones de alimentos para que el usuario elija"""
+        logger.info(f"Mostrando {len(foods)} opciones para '{search_term}'")
         
         options = []
-        for i, product in enumerate(products, 1):
-            name = product.get('product_name_es', product.get('product_name', 'Sin nombre'))
-            brand = product.get('brands', 'Sin marca')
-            
+        for i, food in enumerate(foods[:10]):  # Máximo 10 opciones
             # Obtener información nutricional básica
-            nutriments = product.get('nutriments', {})
-            calories_per_100g = (
-                nutriments.get('energy-kcal_100g') or 
-                nutriments.get('energy_100g') or 
-                (nutriments.get('energy-kj_100g', 0) / 4.184) or 
-                0
-            )
+            nutrition = self._extract_nutrition_data(food, 100)  # Por 100g
+            
+            # Traducir descripción al español usando OpenAI
+            spanish_description = self.translation_service.translate_to_spanish(food.get('description', ''))
+            display_name = spanish_description if spanish_description else food.get('description', 'Sin descripción')
             
             option_info = {
                 'number': i,
-                'name': name,
-                'brand': brand,
-                'calories_per_100g': round(calories_per_100g),
-                'product': product,
-                'display_name': f"{name} ({brand}) - {round(calories_per_100g)} cal/100g"
+                'fdc_id': food.get('fdcId'),
+                'name': display_name,
+                'original_name': food.get('description', ''),
+                'brand_owner': food.get('brandOwner', 'Sin marca'),
+                'calories_per_100g': nutrition['calories'],
+                'proteins_per_100g': nutrition['proteins'],
+                'carbs_per_100g': nutrition['carbs'],
+                'fats_per_100g': nutrition['fats'],
+                'food': food,
+                'display_name': f"{display_name} - {nutrition['calories']} cal/100g"
             }
             options.append(option_info)
         
-        # En lugar de lanzar error, devolver estructura especial para múltiples opciones
         return {
             'multiple_options': True,
             'search_term': search_term,
@@ -509,49 +213,68 @@ class NutritionAPI:
         }
     
     def get_nutrition_from_selected_option(self, option_data: Dict, selected_index: int) -> Dict:
-        """Obtener nutrición del producto seleccionado por el usuario"""
+        """Obtener nutrición del alimento seleccionado por el usuario"""
         try:
             if selected_index < 0 or selected_index >= len(option_data['options']):
                 raise ValueError("Índice de selección inválido")
             
             selected_option = option_data['options'][selected_index]
-            selected_product = selected_option['product']
+            selected_food = selected_option['food']
             grams = option_data['grams']
             
-            # Extraer información nutricional del producto seleccionado
-            nutrition_data = self._extract_nutrition_data(selected_product, grams)
+            # Extraer información nutricional del alimento seleccionado
+            nutrition_data = self._extract_nutrition_data(selected_food, grams)
             
-            print(f"✅ Producto seleccionado: {selected_option['display_name']}")
-            print(f"✅ Nutrición: {nutrition_data['calories']} cal, {nutrition_data['proteins']}g proteína")
+            # Traducir el nombre al español
+            spanish_name = self.translation_service.translate_to_spanish(selected_food.get('description', ''))
+            if spanish_name:
+                nutrition_data['product_name'] = spanish_name
+            
+            logger.info(f"Alimento seleccionado: {selected_option['display_name']}")
+            logger.info(f"Nutrición: {nutrition_data['calories']} cal, {nutrition_data['proteins']}g proteína")
             
             return nutrition_data
             
         except Exception as e:
-            print(f"❌ Error procesando selección: {e}")
+            logger.error(f"Error procesando selección: {e}")
             raise ValueError(f"Error procesando la opción seleccionada: {str(e)}")
     
-    def _extract_nutrition_data(self, product: Dict, grams: float) -> Dict:
-        """Extraer datos nutricionales de un producto de Open Food Facts"""
+    def _extract_nutrition_data(self, food: Dict, grams: float) -> Dict:
+        """Extraer datos nutricionales de un alimento de USDA"""
         try:
-            # Obtener información nutricional por 100g
-            nutriments = product.get('nutriments', {})
+            # Obtener nutrientes del alimento
+            food_nutrients = food.get('foodNutrients', [])
             
-            # Calorías por 100g (prioridad: energy-kcal_100g, energy_100g, energy-kj_100g)
-            calories_per_100g = self._safe_float(
-                nutriments.get('energy-kcal_100g') or 
-                nutriments.get('energy_100g') or 
-                (self._safe_float(nutriments.get('energy-kj_100g', 0)) / 4.184) or
-                0
-            )
+            # Mapeo de nutrientes USDA a nuestros campos
+            nutrition_mapping = {
+                'calories': ['Energy', 'Calories'],
+                'proteins': ['Protein'],
+                'carbs': ['Carbohydrate, by difference'],
+                'fats': ['Total lipid (fat)'],
+                'fiber': ['Fiber, total dietary'],
+                'sugar': ['Sugars, total including NLEA'],
+                'sodium': ['Sodium, Na'],
+                'cholesterol': ['Cholesterol']
+            }
             
-            # Proteínas por 100g
-            proteins_per_100g = self._safe_float(nutriments.get('proteins_100g', 0))
+            # Extraer valores nutricionales
+            nutrition_values = {}
+            for nutrient in food_nutrients:
+                nutrient_name = nutrient.get('nutrientName', '')
+                nutrient_value = nutrient.get('value', 0)
+                unit = nutrient.get('unitName', '')
+                
+                # Mapear nutrientes
+                for our_field, usda_names in nutrition_mapping.items():
+                    if any(usda_name in nutrient_name for usda_name in usda_names):
+                        nutrition_values[our_field] = nutrient_value
+                        break
             
-            # Carbohidratos por 100g
-            carbs_per_100g = self._safe_float(nutriments.get('carbohydrates_100g', 0))
-            
-            # Grasas por 100g
-            fats_per_100g = self._safe_float(nutriments.get('fat_100g', 0))
+            # Valores por defecto si no se encuentran
+            calories_per_100g = nutrition_values.get('calories', 0)
+            proteins_per_100g = nutrition_values.get('proteins', 0)
+            carbs_per_100g = nutrition_values.get('carbs', 0)
+            fats_per_100g = nutrition_values.get('fats', 0)
             
             # Calcular valores para la cantidad especificada
             multiplier = grams / 100
@@ -561,47 +284,50 @@ class NutritionAPI:
                 'proteins': round(proteins_per_100g * multiplier, 1),
                 'carbs': round(carbs_per_100g * multiplier, 1),
                 'fats': round(fats_per_100g * multiplier, 1),
-                'product_name': product.get('product_name_es', product.get('product_name', 'Producto')),
-                'brand': product.get('brands', 'Sin marca'),
-                'barcode': product.get('code', 'Sin código'),
-                'image_url': product.get('image_url', ''),
-                'nutrition_grade': product.get('nutrition_grade_fr', 'Sin calificación')
+                'fiber': round(nutrition_values.get('fiber', 0) * multiplier, 1),
+                'sugar': round(nutrition_values.get('sugar', 0) * multiplier, 1),
+                'sodium': round(nutrition_values.get('sodium', 0) * multiplier, 1),
+                'cholesterol': round(nutrition_values.get('cholesterol', 0) * multiplier, 1),
+                'product_name': food.get('description', 'Producto'),
+                'brand': food.get('brandOwner', 'Sin marca'),
+                'fdc_id': food.get('fdcId', 'Sin ID'),
+                'data_type': food.get('dataType', 'Desconocido'),
+                'scientific_name': food.get('scientificName', ''),
+                'category': food.get('foodCategory', 'Sin categoría')
             }
             
         except Exception as e:
-            print(f"❌ Error extrayendo datos nutricionales: {e}")
-            raise ValueError(f"❌ Error procesando información nutricional del producto: {str(e)}")
+            logger.error(f"Error extrayendo datos nutricionales: {e}")
+            raise ValueError(f"Error procesando información nutricional del alimento: {str(e)}")
     
     def search_food(self, query: str) -> List[Dict]:
-        """Buscar alimentos en Open Food Facts"""
+        """Buscar alimentos en USDA"""
         try:
-            search_params = {
-                'search_terms': query,
-                'search_simple': 1,
-                'page_size': 10
-            }
+            search_results = self.search_foods(query, page_size=10)
             
-            api_response = self._make_api_request(search_params)
+            if not search_results or 'foods' not in search_results:
+                return []
             
-            if api_response and 'products' in api_response:
-                results = []
-                for product in api_response['products']:
-                    if product.get('product_name_es') or product.get('product_name'):
-                        results.append({
-                            'name': product.get('product_name_es', product.get('product_name', 'Sin nombre')),
-                            'brand': product.get('brands', 'Sin marca'),
-                            'barcode': product.get('code', 'Sin código'),
-                            'image_url': product.get('image_url', ''),
-                            'nutrition_grade': product.get('nutrition_grade_fr', 'Sin calificación')
-                        })
+            results = []
+            for food in search_results['foods'][:5]:  # Máximo 5 resultados
+                # Traducir descripción al español
+                spanish_description = self.translation_service.translate_to_spanish(food.get('description', ''))
+                display_name = spanish_description if spanish_description else food.get('description', 'Sin descripción')
                 
-                print(f"🔍 Búsqueda completada: {len(results)} productos encontrados")
-                return results[:5]  # Máximo 5 resultados
+                results.append({
+                    'name': display_name,
+                    'original_name': food.get('description', ''),
+                    'brand': food.get('brandOwner', 'Sin marca'),
+                    'fdc_id': food.get('fdcId', 'Sin ID'),
+                    'data_type': food.get('dataType', 'Desconocido'),
+                    'category': food.get('foodCategory', 'Sin categoría')
+                })
             
-            return []
+            logger.info(f"Búsqueda completada: {len(results)} alimentos encontrados")
+            return results
             
         except Exception as e:
-            print(f"❌ Error en búsqueda: {e}")
+            logger.error(f"Error en búsqueda: {e}")
             return []
     
     def get_food_suggestions(self, query: str) -> List[str]:
@@ -612,34 +338,34 @@ class NutritionAPI:
             return suggestions
             
         except Exception as e:
-            print(f"❌ Error obteniendo sugerencias: {e}")
+            logger.error(f"Error obteniendo sugerencias: {e}")
             return []
     
-    def get_product_by_barcode(self, barcode: str) -> Optional[Dict]:
-        """Obtener información de un producto por código de barras"""
+    def get_food_by_fdc_id(self, fdc_id: int) -> Optional[Dict]:
+        """Obtener información de un alimento por su FDC ID"""
         try:
-            search_params = {
-                'code': barcode,
-                'json': 1
-            }
+            food_details = self.get_food_details(fdc_id)
             
-            api_response = self._make_api_request(search_params)
-            
-            if api_response and 'products' in api_response and api_response['products']:
-                product = api_response['products'][0]
+            if food_details:
+                # Traducir descripción al español
+                spanish_description = self.translation_service.translate_to_spanish(food_details.get('description', ''))
+                display_name = spanish_description if spanish_description else food_details.get('description', 'Sin descripción')
+                
                 return {
-                    'name': product.get('product_name_es', product.get('product_name', 'Sin nombre')),
-                    'brand': product.get('brands', 'Sin marca'),
-                    'barcode': product.get('code', 'Sin código'),
-                    'image_url': product.get('image_url', ''),
-                    'nutrition_grade': product.get('nutrition_grade_fr', 'Sin calificación'),
-                    'ingredients': product.get('ingredients_text_es', product.get('ingredients_text', 'Sin ingredientes')),
-                    'allergens': product.get('allergens_tags', []),
-                    'additives': product.get('additives_tags', [])
+                    'name': display_name,
+                    'original_name': food_details.get('description', ''),
+                    'brand': food_details.get('brandOwner', 'Sin marca'),
+                    'fdc_id': food_details.get('fdcId', 'Sin ID'),
+                    'data_type': food_details.get('dataType', 'Desconocido'),
+                    'category': food_details.get('foodCategory', 'Sin categoría'),
+                    'scientific_name': food_details.get('scientificName', ''),
+                    'ingredients': food_details.get('ingredients', 'Sin ingredientes'),
+                    'allergens': food_details.get('allergens', []),
+                    'nutrients': food_details.get('foodNutrients', [])
                 }
             
             return None
             
         except Exception as e:
-            print(f"❌ Error obteniendo producto por código de barras: {e}")
+            logger.error(f"Error obteniendo alimento por FDC ID: {e}")
             return None

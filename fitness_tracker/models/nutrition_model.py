@@ -96,3 +96,80 @@ class NutritionModel:
             'carbs': result['total_carbs'] if result['total_carbs'] else 0,
             'fats': result['total_fats'] if result['total_fats'] else 0
         }
+    
+    # ===== MÉTODOS PARA FAVORITOS =====
+    
+    def add_food_favorite(self, food_data):
+        """Añadir una comida a favoritos"""
+        cursor = self.db.get_connection().cursor()
+        
+        # Verificar si ya existe
+        cursor.execute('''
+            SELECT id, usage_count FROM food_favorites 
+            WHERE food_name = ? AND display_name = ?
+        ''', (food_data['name'], food_data['display_name']))
+        
+        existing = cursor.fetchone()
+        
+        if existing:
+            # Actualizar contador de uso
+            cursor.execute('''
+                UPDATE food_favorites 
+                SET usage_count = usage_count + 1 
+                WHERE id = ?
+            ''', (existing['id'],))
+            self.db.get_connection().commit()
+            return existing['id']
+        else:
+            # Crear nuevo favorito
+            created_at = datetime.now().isoformat()
+            cursor.execute('''
+                INSERT INTO food_favorites (
+                    food_name, display_name, calories_per_100g, 
+                    proteins_per_100g, carbs_per_100g, fats_per_100g,
+                    brand_owner, category, fdc_id, data_type, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                food_data['name'], food_data['display_name'], 
+                food_data['calories_per_100g'],
+                food_data.get('proteins_per_100g', 0),
+                food_data.get('carbs_per_100g', 0),
+                food_data.get('fats_per_100g', 0),
+                food_data.get('brand_owner', ''),
+                food_data.get('category', ''),
+                food_data.get('fdc_id', ''),
+                food_data.get('data_type', ''),
+                created_at
+            ))
+            
+            self.db.get_connection().commit()
+            return cursor.lastrowid
+    
+    def get_food_favorites(self, limit=10):
+        """Obtener comidas favoritas ordenadas por uso"""
+        cursor = self.db.get_connection().cursor()
+        cursor.execute('''
+            SELECT * FROM food_favorites 
+            ORDER BY usage_count DESC, created_at DESC 
+            LIMIT ?
+        ''', (limit,))
+        
+        rows = cursor.fetchall()
+        return [dict(row) for row in rows]
+    
+    def remove_food_favorite(self, favorite_id):
+        """Eliminar una comida de favoritos"""
+        cursor = self.db.get_connection().cursor()
+        cursor.execute('DELETE FROM food_favorites WHERE id = ?', (favorite_id,))
+        self.db.get_connection().commit()
+        return cursor.rowcount > 0
+    
+    def is_food_favorite(self, food_name, display_name):
+        """Verificar si una comida está en favoritos"""
+        cursor = self.db.get_connection().cursor()
+        cursor.execute('''
+            SELECT id FROM food_favorites 
+            WHERE food_name = ? AND display_name = ?
+        ''', (food_name, display_name))
+        
+        return cursor.fetchone() is not None

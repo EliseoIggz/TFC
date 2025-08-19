@@ -24,7 +24,7 @@ class NutritionController:
             if grams <= 0 or grams > 10000:  # Máximo 10 kg
                 return {'success': False, 'message': 'Los gramos deben estar entre 1 y 10000'}
             
-            # Obtener información nutricional de la API
+            # Obtener información nutricional de la API de USDA
             nutrition_info = self.nutrition_api.get_nutrition_info(food, grams)
             
             # Verificar si hay múltiples opciones
@@ -49,7 +49,7 @@ class NutritionController:
             if meal_id:
                 return {
                     'success': True, 
-                    'message': f'Comida registrada: {food} - {grams}g - {nutrition_info["calories"]} cal',
+                    'message': f'Comida registrada: {nutrition_info["product_name"]} - {grams}g - {nutrition_info["calories"]} cal',
                     'meal_id': meal_id,
                     'nutrition_info': nutrition_info
                 }
@@ -126,27 +126,97 @@ class NutritionController:
         except Exception as e:
             return {'success': False, 'message': f'Error: {str(e)}'}
     
-    def get_nutrition_stats(self, date=None):
-        """Obtener estadísticas nutricionales"""
+    def get_nutrition_stats(self, date):
+        """Obtener estadísticas nutricionales de una fecha"""
         try:
-            nutrition_totals = self.nutrition_model.get_nutrition_totals(date)
-            total_calories = self.nutrition_model.get_total_calories(date)
-            
-            return {
-                'success': True,
-                'data': {
-                    'total_calories': total_calories,
-                    'total_proteins': nutrition_totals['proteins'],
-                    'total_carbs': nutrition_totals['carbs'],
-                    'total_fats': nutrition_totals['fats'],
-                    'date': date
+            totals = self.nutrition_model.get_nutrition_totals(date)
+            return {'success': True, 'data': totals}
+        except Exception as e:
+            return {'success': False, 'message': f'Error obteniendo estadísticas: {str(e)}'}
+    
+    # ===== MÉTODOS PARA FAVORITOS =====
+    
+    def add_food_favorite(self, food_data):
+        """Añadir una comida a favoritos"""
+        try:
+            favorite_id = self.nutrition_model.add_food_favorite(food_data)
+            if favorite_id:
+                return {
+                    'success': True,
+                    'message': f'"{food_data["display_name"]}" añadido a favoritos',
+                    'favorite_id': favorite_id
                 }
-            }
+            else:
+                return {'success': False, 'message': 'Error al añadir a favoritos'}
+        except Exception as e:
+            return {'success': False, 'message': f'Error: {str(e)}'}
+    
+    def get_food_favorites(self, limit=10):
+        """Obtener comidas favoritas del usuario"""
+        try:
+            favorites = self.nutrition_model.get_food_favorites(limit)
+            return {'success': True, 'data': favorites}
+        except Exception as e:
+            return {'success': False, 'message': f'Error obteniendo favoritos: {str(e)}'}
+    
+    def remove_food_favorite(self, favorite_id):
+        """Eliminar una comida de favoritos"""
+        try:
+            if self.nutrition_model.remove_food_favorite(favorite_id):
+                return {'success': True, 'message': 'Comida eliminada de favoritos'}
+            else:
+                return {'success': False, 'message': 'Error al eliminar de favoritos'}
+        except Exception as e:
+            return {'success': False, 'message': f'Error: {str(e)}'}
+    
+    def is_food_favorite(self, food_name, display_name):
+        """Verificar si una comida está en favoritos"""
+        try:
+            return self.nutrition_model.is_food_favorite(food_name, display_name)
+        except Exception as e:
+            return False
+    
+    def quick_add_from_favorite(self, favorite_id, grams):
+        """Añadir rápidamente una comida desde favoritos"""
+        try:
+            # Obtener datos del favorito
+            favorites = self.nutrition_model.get_food_favorites(1000)  # Obtener todos
+            favorite = next((f for f in favorites if f['id'] == favorite_id), None)
+            
+            if not favorite:
+                return {'success': False, 'message': 'Favorito no encontrado'}
+            
+            # Calcular valores nutricionales para los gramos especificados
+            ratio = grams / 100.0
+            calories = int(favorite['calories_per_100g'] * ratio)
+            proteins = favorite['proteins_per_100g'] * ratio
+            carbs = favorite['carbs_per_100g'] * ratio
+            fats = favorite['fats_per_100g'] * ratio
+            
+            # Guardar en la base de datos
+            meal_id = self.nutrition_model.add_meal(
+                favorite['display_name'],
+                grams,
+                calories,
+                proteins,
+                carbs,
+                fats
+            )
+            
+            if meal_id:
+                return {
+                    'success': True,
+                    'message': f'Comida añadida: {favorite["display_name"]} - {grams}g - {calories} cal',
+                    'meal_id': meal_id
+                }
+            else:
+                return {'success': False, 'message': 'Error al guardar la comida'}
+                
         except Exception as e:
             return {'success': False, 'message': f'Error: {str(e)}'}
     
     def search_food(self, query):
-        """Buscar alimentos"""
+        """Buscar alimentos en USDA"""
         try:
             results = self.nutrition_api.search_food(query)
             return {'success': True, 'data': results}
@@ -154,9 +224,9 @@ class NutritionController:
             return {'success': False, 'message': f'Error: {str(e)}'}
     
     def get_food_suggestions(self, query):
-        """Obtener sugerencias de alimentos"""
+        """Obtener sugerencias de alimentos desde USDA"""
         try:
-            suggestions = self.nutrition_api.search_food(query)
+            suggestions = self.nutrition_api.get_food_suggestions(query)
             return {'success': True, 'data': suggestions}
         except Exception as e:
             return {'success': False, 'message': f'Error: {str(e)}'}
