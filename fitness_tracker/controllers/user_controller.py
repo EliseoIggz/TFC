@@ -11,13 +11,13 @@ class UserController:
 
     def __init__(self):
         self.user_model = UserModel()
-        logger.info("UserController inicializado")
+        # logger.info("UserController inicializado")
 
     def get_profile(self):
         try:
-            logger.info("Obteniendo perfil del usuario...")
+            # logger.info("Obteniendo perfil del usuario...")
             profile = self.user_model.get_profile()
-            logger.info(f"Perfil obtenido: {profile}")
+            # logger.info(f"Perfil obtenido: {profile}")
             return {"success": True, "data": profile}
         except Exception as e:
             logger.error(f"Error al obtener perfil: {e}")

@@ -4,7 +4,7 @@
 
 from typing import Dict
 from models.nutrition_model import NutritionModel
-from services.nutrition_api import NutritionAPI
+from services.nutrition_api import NutritionService
 
 class NutritionController:
     """Controlador para manejar la lógica de nutrición"""
@@ -12,7 +12,7 @@ class NutritionController:
     def __init__(self):
         """Inicializar el controlador"""
         self.nutrition_model = NutritionModel()
-        self.nutrition_api = NutritionAPI()
+        self.nutrition_api = NutritionService()
     
     def add_meal(self, food, grams):
         """Añadir una nueva comida"""
@@ -134,86 +134,7 @@ class NutritionController:
         except Exception as e:
             return {'success': False, 'message': f'Error obteniendo estadísticas: {str(e)}'}
     
-    # ===== MÉTODOS PARA FAVORITOS =====
-    
-    def add_food_favorite(self, food_data):
-        """Añadir una comida a favoritos"""
-        try:
-            favorite_id = self.nutrition_model.add_food_favorite(food_data)
-            if favorite_id:
-                return {
-                    'success': True,
-                    'message': f'"{food_data["display_name"]}" añadido a favoritos',
-                    'favorite_id': favorite_id
-                }
-            else:
-                return {'success': False, 'message': 'Error al añadir a favoritos'}
-        except Exception as e:
-            return {'success': False, 'message': f'Error: {str(e)}'}
-    
-    def get_food_favorites(self, limit=10):
-        """Obtener comidas favoritas del usuario"""
-        try:
-            favorites = self.nutrition_model.get_food_favorites(limit)
-            return {'success': True, 'data': favorites}
-        except Exception as e:
-            return {'success': False, 'message': f'Error obteniendo favoritos: {str(e)}'}
-    
-    def remove_food_favorite(self, favorite_id):
-        """Eliminar una comida de favoritos"""
-        try:
-            if self.nutrition_model.remove_food_favorite(favorite_id):
-                return {'success': True, 'message': 'Comida eliminada de favoritos'}
-            else:
-                return {'success': False, 'message': 'Error al eliminar de favoritos'}
-        except Exception as e:
-            return {'success': False, 'message': f'Error: {str(e)}'}
-    
-    def is_food_favorite(self, food_name, display_name):
-        """Verificar si una comida está en favoritos"""
-        try:
-            return self.nutrition_model.is_food_favorite(food_name, display_name)
-        except Exception as e:
-            return False
-    
-    def quick_add_from_favorite(self, favorite_id, grams):
-        """Añadir rápidamente una comida desde favoritos"""
-        try:
-            # Obtener datos del favorito
-            favorites = self.nutrition_model.get_food_favorites(1000)  # Obtener todos
-            favorite = next((f for f in favorites if f['id'] == favorite_id), None)
-            
-            if not favorite:
-                return {'success': False, 'message': 'Favorito no encontrado'}
-            
-            # Calcular valores nutricionales para los gramos especificados
-            ratio = grams / 100.0
-            calories = int(favorite['calories_per_100g'] * ratio)
-            proteins = favorite['proteins_per_100g'] * ratio
-            carbs = favorite['carbs_per_100g'] * ratio
-            fats = favorite['fats_per_100g'] * ratio
-            
-            # Guardar en la base de datos
-            meal_id = self.nutrition_model.add_meal(
-                favorite['display_name'],
-                grams,
-                calories,
-                proteins,
-                carbs,
-                fats
-            )
-            
-            if meal_id:
-                return {
-                    'success': True,
-                    'message': f'Comida añadida: {favorite["display_name"]} - {grams}g - {calories} cal',
-                    'meal_id': meal_id
-                }
-            else:
-                return {'success': False, 'message': 'Error al guardar la comida'}
-                
-        except Exception as e:
-            return {'success': False, 'message': f'Error: {str(e)}'}
+
     
     def search_food(self, query):
         """Buscar alimentos en USDA"""

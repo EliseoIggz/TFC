@@ -10,7 +10,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from models.nutrition_model import NutritionModel
 from models.database import Database
-from services.nutrition_api import NutritionAPI
+from services.nutrition_api import NutritionService
 from controllers.nutrition_controller import NutritionController
 
 def test_nutrition_complete():
@@ -30,11 +30,11 @@ def test_nutrition_complete():
     try:
         # Verificar que todos los componentes se pueden importar
         nutrition_model = NutritionModel()
-        nutrition_api = NutritionAPI()
+        nutrition_api = NutritionService()
         nutrition_controller = NutritionController()
         
         print("✅ NutritionModel: Importado correctamente")
-        print("✅ NutritionAPI: Importado correctamente")
+        print("✅ NutritionService: Importado correctamente")
         print("✅ NutritionController: Importado correctamente")
         
     except Exception as e:

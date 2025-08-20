@@ -6,12 +6,12 @@ import requests
 import config
 import logging
 from typing import Dict, List, Optional, Any
-from .openai_translation_service import OpenAITranslationService
+from .translation_service import TranslationService
 
 # Configurar logging
 logger = logging.getLogger(__name__)
 
-class NutritionAPI:
+class NutritionService:
     """API para obtener información nutricional desde USDA FoodData Central"""
     
     def __init__(self):
@@ -19,7 +19,7 @@ class NutritionAPI:
         self.api_key = config.USDA_API_KEY
         self.base_url = config.USDA_API_BASE_URL
         self.timeout = 15
-        self.translation_service = OpenAITranslationService()
+        self.translation_service = TranslationService()
         
         # Headers para las peticiones
         self.headers = {
@@ -30,9 +30,7 @@ class NutritionAPI:
         # Añadir API key si está disponible
         if self.api_key:
             self.headers['X-API-Key'] = self.api_key
-        
-        logger.info("NutritionAPI inicializado")
-    
+            
     def _make_api_request(self, endpoint: str, params: Dict = None) -> Optional[Dict]:
         """Realizar petición a la API de USDA"""
         try:

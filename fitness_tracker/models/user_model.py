@@ -12,7 +12,7 @@ class UserModel:
     def __init__(self):
         self.db = Database()
         self.conn = self.db.get_connection()
-        logger.info("UserModel inicializado")
+        # logger.info("UserModel inicializado")
 
     def get_profile(self):
         """Obtener el perfil (fila única id=1)."""
@@ -22,7 +22,7 @@ class UserModel:
             row = cursor.fetchone()
             if row:
                 profile = {"id": row["id"], "name": row["name"] or "", "weight": row["weight"] if row["weight"] is not None else 70.0, "objetivo": row["objetivo"] if row["objetivo"] is not None else "mantener_peso"}
-                logger.info(f"Perfil encontrado en BD: {profile}")
+                # logger.info(f"Perfil encontrado en BD: {profile}")
                 return profile
             else:
                 logger.info("No se encontró perfil en BD, retornando valores por defecto")

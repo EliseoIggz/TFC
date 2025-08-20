@@ -8,14 +8,14 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from services.training import Training
+from services.training import TrainingService
 
 def test_expanded_sports():
     """Probar la base de datos expandida"""
     print("🏃‍♂️ Probando base de deportes expandida...")
 
     # Crear instancia de la API
-    api = Training()
+    api = TrainingService()
 
     # 1. Contar total de deportes
     total_sports = len(api.sports_database)

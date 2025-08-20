@@ -10,7 +10,7 @@ from typing import Optional
 # Configurar logging
 logger = logging.getLogger(__name__)
 
-class OpenAITranslationService:
+class TranslationService:
     """Servicio para traducir texto usando OpenAI GPT"""
     
     def __init__(self):
@@ -21,7 +21,7 @@ class OpenAITranslationService:
         if self.api_key:
             # Configurar el cliente OpenAI con la nueva sintaxis
             self.client = openai.OpenAI(api_key=self.api_key)
-            logger.info("Servicio de traducción OpenAI inicializado")
+            # logger.info("Servicio de traducción OpenAI inicializado")
         else:
             logger.warning("OpenAI API key no configurada - traducción deshabilitada")
     

@@ -3,7 +3,7 @@
 # Este archivo maneja la lógica de negocio para entrenamientos
 
 from models.training_model import TrainingModel
-from services.training import Training
+from services.training import TrainingService
 
 class TrainingController:
     """Controlador para manejar la lógica de entrenamientos"""
@@ -11,7 +11,7 @@ class TrainingController:
     def __init__(self):
         """Inicializar el controlador"""
         self.training_model = TrainingModel()
-        self.training_service = Training()
+        self.training_service = TrainingService()
     
     def add_training(self, activity, minutes, user_weight=70.0):
         """Añadir un nuevo entrenamiento"""
@@ -35,7 +35,7 @@ class TrainingController:
             if training_id:
                 return {
                     'success': True, 
-                    'message': f'Entrenamiento registrado: {activity} - {minutes} min - {calories_burned} cal (peso: {user_weight} kg)',
+                    'message': '',
                     'training_id': training_id,
                     'calories_burned': calories_burned,
                     'user_weight': user_weight
@@ -105,76 +105,4 @@ class TrainingController:
         except Exception as e:
             return {'success': False, 'message': f'Error: {str(e)}'}
     
-    # ===== MÉTODOS PARA FAVORITOS =====
-    
-    def add_exercise_favorite(self, exercise_data):
-        """Añadir un ejercicio a favoritos"""
-        try:
-            favorite_id = self.training_model.add_exercise_favorite(exercise_data)
-            if favorite_id:
-                return {
-                    'success': True,
-                    'message': f'"{exercise_data["name"]}" añadido a favoritos',
-                    'favorite_id': favorite_id
-                }
-            else:
-                return {'success': False, 'message': 'Error al añadir a favoritos'}
-        except Exception as e:
-            return {'success': False, 'message': f'Error: {str(e)}'}
-    
-    def get_exercise_favorites(self, limit=10):
-        """Obtener ejercicios favoritos del usuario"""
-        try:
-            favorites = self.training_model.get_exercise_favorites(limit)
-            return {'success': True, 'data': favorites}
-        except Exception as e:
-            return {'success': False, 'message': f'Error obteniendo favoritos: {str(e)}'}
-    
-    def remove_exercise_favorite(self, favorite_id):
-        """Eliminar un ejercicio de favoritos"""
-        try:
-            if self.training_model.remove_exercise_favorite(favorite_id):
-                return {'success': True, 'message': 'Ejercicio eliminado de favoritos'}
-            else:
-                return {'success': False, 'message': 'Error al eliminar de favoritos'}
-        except Exception as e:
-            return {'success': False, 'message': f'Error: {str(e)}'}
-    
-    def is_exercise_favorite(self, activity_key):
-        """Verificar si un ejercicio está en favoritos"""
-        try:
-            return self.training_model.is_exercise_favorite(activity_key)
-        except Exception as e:
-            return False
-    
-    def quick_add_from_favorite(self, favorite_id, minutes, user_weight=70.0):
-        """Añadir rápidamente un ejercicio desde favoritos"""
-        try:
-            # Obtener datos del favorito
-            favorites = self.training_model.get_exercise_favorites(1000)  # Obtener todos
-            favorite = next((f for f in favorites if f['id'] == favorite_id), None)
-            
-            if not favorite:
-                return {'success': False, 'message': 'Favorito no encontrado'}
-            
-            # Calcular calorías quemadas
-            calories_burned = self.training_service.get_calories_burned(
-                favorite['activity_key'], minutes, user_weight
-            )
-            
-            # Guardar en la base de datos
-            training_id = self.training_model.add_training(
-                favorite['activity_name'], minutes, calories_burned
-            )
-            
-            if training_id:
-                return {
-                    'success': True,
-                    'message': f'Ejercicio añadido: {favorite["activity_name"]} - {minutes} min - {calories_burned} cal',
-                    'training_id': training_id
-                }
-            else:
-                return {'success': False, 'message': 'Error al guardar el entrenamiento'}
-                
-        except Exception as e:
-            return {'success': False, 'message': f'Error: {str(e)}'}
+

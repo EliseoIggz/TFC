@@ -32,8 +32,8 @@ def test_openai_integration():
         # 2. Probar servicio OpenAI - 2 CONSULTAS
         print("\n2️⃣ **Probando OpenAI (2 consultas)...**")
         try:
-            from services.openai_translation_service import OpenAITranslationService
-            openai_service = OpenAITranslationService()
+            from services.translation_service import TranslationService
+            openai_service = TranslationService()
             
             if openai_service.is_available():
                 print("   ✅ OpenAI disponible")

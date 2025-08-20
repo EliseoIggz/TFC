@@ -6,14 +6,14 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from services.nutrition_api import NutritionAPI
-from services.openai_translation_service import OpenAITranslationService
+from services.nutrition_api import NutritionService
+from services.translation_service import TranslationService
 
 def test_usda_nutrition_api():
     print("🧪 Test de la Nueva API de Nutrición (USDA FoodData Central)")
     print("=" * 70)
     
-    usda_api = NutritionAPI()
+    usda_api = NutritionService()
     
     # Test 1: Verificar que la API está configurada
     print("\n1️⃣ Verificación de Configuración")
@@ -122,7 +122,7 @@ def test_translation_service():
     print("\n🌐 Test del Servicio de Traducción (OpenAI)")
     print("=" * 60)
     
-    translator = OpenAITranslationService()
+    translator = TranslationService()
     
     # Test 1: Traducción español → inglés
     print("\n1️⃣ Traducción español → inglés")

@@ -7,10 +7,32 @@ echo.
 :: Verificar si Python esta instalado
 python --version >nul 2>&1
 if errorlevel 1 (
-    echo  ERROR: Python no esta instalado o no esta en el PATH
-    echo Por favor, instala Python 3.8 o superior
+    echo Python no encontrado.
+    echo.
+    echo Intentando instalar Python con winget...
+    winget install Python.Python.3.11 --accept-package-agreements --accept-source-agreements
+    if errorlevel 1 (
+        echo.
+        echo Error: No se pudo instalar Python con winget.
+        echo.
+        echo Posibles causas:
+        echo - Winget no esta disponible en tu sistema
+        echo - Sin permisos de administrador
+        echo - Sin conexion a internet
+        echo.
+        echo Solucion: Instala Python manualmente desde python.org
+        echo.
+        pause
+        exit /b 1
+    )
+    echo.
+    echo Python instalado correctamente!
+    echo.
+    echo IMPORTANTE: Cierra esta ventana y ejecuta el script nuevamente
+    echo para que Python sea reconocido por el sistema.
+    echo.
     pause
-    exit /b 1
+    exit /b 0
 )
 
 echo Python encontrado

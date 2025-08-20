@@ -5,7 +5,7 @@
 import config
 from typing import Dict, List, Optional
 
-class Training:
+class TrainingService:
     """Servicio para calcular calorías quemadas en actividades deportivas"""
     
     def __init__(self):
@@ -27,7 +27,6 @@ class Training:
             
             # DEPORTES ACUÁTICOS
             'natación': {'name': 'Natación', 'met': 7.0, 'category': 'deporte_acuatico'},
-            'nadar': {'name': 'Nadar', 'met': 7.0, 'category': 'deporte_acuatico'},
             'waterpolo': {'name': 'Waterpolo', 'met': 10.0, 'category': 'deporte_acuatico'},
             'remo': {'name': 'Remo', 'met': 7.0, 'category': 'deporte_acuatico'},
             'surf': {'name': 'Surf', 'met': 3.0, 'category': 'deporte_acuatico'},

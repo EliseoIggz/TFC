@@ -17,6 +17,21 @@ def format_date(date_obj):
     
     return str(date_obj)
 
+def format_date_display(date_obj):
+    """Formatear fecha para mostrar, usando 'hoy' si es la fecha actual"""
+    if isinstance(date_obj, str):
+        try:
+            date_obj = datetime.strptime(date_obj, '%Y-%m-%d').date()
+        except ValueError:
+            return date_obj
+    
+    if isinstance(date_obj, date):
+        if date_obj == date.today():
+            return "hoy"
+        return date_obj.strftime('%d/%m/%Y')
+    
+    return str(date_obj)
+
 def format_time(minutes):
     """Formatear tiempo en formato legible"""
     if minutes < 60:
