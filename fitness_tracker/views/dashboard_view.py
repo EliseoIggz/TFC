@@ -2,6 +2,7 @@
 import streamlit as st
 import plotly.graph_objects as go
 from datetime import date
+import base64
 from controllers.training_controller import TrainingController
 from controllers.nutrition_controller import NutritionController
 from controllers.user_controller import UserController
@@ -19,18 +20,15 @@ class DashboardView:
         
         st.set_page_config(
             page_title="Limen - Fitness Tracker",
+            page_icon="assets/images/favicon.ico",
             layout=config.STREAMLIT_LAYOUT,
             initial_sidebar_state=config.STREAMLIT_SIDEBAR_STATE
         )
     
     def render(self):
         """Renderizar dashboard completo"""
-        # Logo + Título
-        col1, col2 = st.columns([1, 4])
-        with col1:
-            st.image("assets/images/logo.png", width=80, use_container_width=False)
-        with col2:
-            st.title("Limen")
+        # Solo el título
+        st.title("Limen")
         
         st.markdown("**Seguimiento de entrenamientos y nutrición**")
         
@@ -38,6 +36,13 @@ class DashboardView:
         self._render_header()
         
         with st.sidebar:
+            # Logo centrado en la parte superior del sidebar
+            st.markdown("""
+            <div style="text-align: center; margin-bottom: 20px;">
+                <img src="data:image/png;base64,{}" width="80" style="margin: 0 auto;">
+            </div>
+            """.format(self._get_image_base64("assets/images/logo_sharp.png")), unsafe_allow_html=True)
+            
             self._render_profile_form()
             self._render_input_forms()
         
@@ -597,3 +602,11 @@ class DashboardView:
                 st.plotly_chart(fig, use_container_width=True)
             else:
                 st.error(recomendacion_vm.get('error', 'Error al obtener recomendaciones de macronutrientes'))
+    
+    def _get_image_base64(self, image_path):
+        """Convertir imagen a base64 para HTML"""
+        try:
+            with open(image_path, "rb") as image_file:
+                return base64.b64encode(image_file.read()).decode()
+        except Exception:
+            return ""
