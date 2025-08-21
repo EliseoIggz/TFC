@@ -4,34 +4,6 @@ echo       LIMEN - LAUNCHER
 echo ========================================
 echo.
 
-:: Verificar si se ejecuta como administrador
-net session >nul 2>&1
-if errorlevel 1 (
-    echo ⚠️  ADVERTENCIA: Este script no se está ejecutando como administrador
-    echo.
-    echo Para una instalación completa de Python y configuración del PATH,
-    echo se recomienda ejecutar este script como administrador.
-    echo.
-    echo ¿Deseas continuar de todas formas? (S/N)
-    set /p choice=
-    if /i "%choice%"=="N" (
-        echo.
-        echo Para ejecutar como administrador:
-        echo 1. Haz clic derecho en este archivo
-        echo 2. Selecciona "Ejecutar como administrador"
-        echo.
-        pause
-        exit /b 0
-    )
-    echo.
-    echo Continuando sin privilegios de administrador...
-    echo Si hay problemas, ejecuta como administrador.
-    echo.
-) else (
-    echo ✅ Ejecutando como administrador - Instalación completa disponible
-    echo.
-)
-
 :: Verificar si Python esta instalado
 python --version >nul 2>&1
 if errorlevel 1 (
@@ -45,12 +17,10 @@ if errorlevel 1 (
         echo.
         echo Posibles causas:
         echo - Winget no esta disponible en tu sistema
-        echo - Sin permisos de administrador (MÁS PROBABLE)
+        echo - Sin permisos de administrador
         echo - Sin conexion a internet
         echo.
-        echo Soluciones:
-        echo 1. Ejecuta este script como administrador (RECOMENDADO)
-        echo 2. Instala Python manualmente desde python.org
+        echo Solucion: Instala Python manualmente desde python.org
         echo.
         pause
         exit /b 1
