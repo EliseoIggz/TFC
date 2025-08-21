@@ -27,6 +27,9 @@ if errorlevel 1 (
     echo Continuando sin privilegios de administrador...
     echo Si hay problemas, ejecuta como administrador.
     echo.
+) else (
+    echo ✅ Ejecutando como administrador - Instalación completa disponible
+    echo.
 )
 
 :: Verificar si Python esta instalado
