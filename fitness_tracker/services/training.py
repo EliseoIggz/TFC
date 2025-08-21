@@ -1,4 +1,4 @@
-# Fitness Tracker - Servicio de Deportes
+# Limen - Servicio de Deportes
 # =====================================
 # Este archivo calcula calorías quemadas en actividades deportivas
 

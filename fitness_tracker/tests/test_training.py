@@ -1,4 +1,4 @@
-# Fitness Tracker - Pruebas del Modelo de Entrenamientos
+# Limen - Pruebas del Modelo de Entrenamientos
 # ======================================================
 # Este archivo contiene pruebas unitarias para entrenamientos
 

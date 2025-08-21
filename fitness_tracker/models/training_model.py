@@ -1,4 +1,4 @@
-# Fitness Tracker - Modelo de entrenamientos
+# Limen - Modelo de entrenamientos
 # =========================================
 # Este archivo maneja las operaciones CRUD para entrenamientos
 

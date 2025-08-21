@@ -1,4 +1,4 @@
-# Fitness Tracker - Modelo de nutrición
+# Limen - Modelo de nutrición
 # ====================================
 # Este archivo maneja las operaciones CRUD para comidas
 

@@ -1,4 +1,4 @@
-# Fitness Tracker - Paquete de modelos
+# Limen - Paquete de modelos
 # ===================================
 # Este paquete contiene los modelos de datos y la conexión a la base de datos
 

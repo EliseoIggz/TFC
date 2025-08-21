@@ -1,4 +1,4 @@
-# Fitness Tracker - Servicio de Traducción OpenAI
+# Limen - Servicio de Traducción OpenAI
 # ==============================================
 # Este archivo maneja las traducciones usando OpenAI GPT
 

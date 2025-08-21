@@ -1,4 +1,4 @@
-# Fitness Tracker - Aplicación Principal
+# Limen - Aplicación Principal
 # =====================================
 # Este es el punto de entrada de la aplicación
 
@@ -14,7 +14,7 @@ import config
 
 def main():
     """Función principal de la aplicación"""
-    print("🏃‍♂️ Fitness Tracker - Iniciando...")
+    print("🏃‍♂️ Limen - Iniciando...")
     print(f"Versión: {config.APP_VERSION}")
     print(f"Autor: {config.APP_AUTHOR}")
     print("=" * 50)

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Script con opciones para limpiar la base de datos del Fitness Tracker
+Script con opciones para limpiar la base de datos del Limen
 ====================================================================
 Permite elegir entre limpieza parcial (solo registros) o completa (todo)
 """
@@ -174,7 +174,7 @@ def main_menu():
     """Menú principal"""
     while True:
         print("\n" + "=" * 60)
-        print("🧹 LIMPIADOR DE BASE DE DATOS - FITNESS TRACKER")
+        print("🧹 LIMPIADOR DE BASE DE DATOS - Limen")
         print("=" * 60)
         print("\n📋 OPCIONES DISPONIBLES:")
         print("1. 🧹 Limpieza PARCIAL (solo comidas + entrenamientos)")

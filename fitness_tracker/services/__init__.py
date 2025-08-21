@@ -1,4 +1,4 @@
-# Fitness Tracker - Paquete de servicios
+# Limen - Paquete de servicios
 # =====================================
 # Este paquete contiene las APIs para nutrición y deporte
 

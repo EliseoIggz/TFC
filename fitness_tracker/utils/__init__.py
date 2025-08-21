@@ -1,4 +1,4 @@
-# Fitness Tracker - Paquete de utilidades
+# Limen - Paquete de utilidades
 # =======================================
 # Este paquete contiene funciones auxiliares y de verificación
 

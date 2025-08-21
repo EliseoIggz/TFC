@@ -1,4 +1,4 @@
-# Fitness Tracker - Conexión a la base de datos
+# Limen - Conexión a la base de datos
 # =============================================
 # Este archivo maneja la conexión a SQLite y crea las tablas necesarias
 

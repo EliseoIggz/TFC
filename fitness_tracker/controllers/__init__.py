@@ -1,4 +1,4 @@
-# Fitness Tracker - Paquete de controladores
+# Limen - Paquete de controladores
 # ==========================================
 # Este paquete contiene la lógica de negocio de la aplicación
 

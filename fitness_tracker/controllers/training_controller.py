@@ -1,4 +1,4 @@
-# Fitness Tracker - Controlador de Entrenamientos
+# Limen - Controlador de Entrenamientos
 # =============================================
 # Este archivo maneja la lógica de negocio para entrenamientos
 

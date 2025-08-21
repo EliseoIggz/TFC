@@ -1,4 +1,4 @@
-# Fitness Tracker - Configuración general
+# Limen - Configuración general
 # ======================================
 # Este archivo contiene configuraciones básicas de la aplicación
 
@@ -7,12 +7,12 @@ DATABASE_NAME = "fitness_tracker.db"
 DATABASE_PATH = f"./data/{DATABASE_NAME}"
 
 # Configuración de la aplicación
-APP_NAME = "Fitness Tracker"
+APP_NAME = "Limen"
 APP_VERSION = "1.0.0"
 APP_AUTHOR = "Eliseo"
 
 # Configuración de Streamlit
-STREAMLIT_TITLE = "Fitness Tracker - Seguimiento de Entrenamientos y Nutrición"
+STREAMLIT_TITLE = "Limen - Seguimiento de Entrenamientos y Nutrición"
 STREAMLIT_LAYOUT = "wide"
 STREAMLIT_SIDEBAR_STATE = "expanded"
 

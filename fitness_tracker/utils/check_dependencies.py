@@ -1,4 +1,4 @@
-# Fitness Tracker - Verificación de Dependencias
+# Limen - Verificación de Dependencias
 # =============================================
 # Verifica las dependencias necesarias para el funcionamiento completo
 
@@ -9,7 +9,7 @@ from typing import Dict, List
 import os
 
 class DependencyChecker:
-    """Verificador de dependencias del proyecto Fitness Tracker"""
+    """Verificador de dependencias del proyecto Limen"""
     
     def __init__(self):
         """Inicializar verificador leyendo requirements.txt automáticamente"""
@@ -52,7 +52,7 @@ class DependencyChecker:
     
     def check_dependencies(self) -> Dict[str, any]:
         """Verificar estado de todas las dependencias"""
-        print("Verificando dependencias del Fitness Tracker...")
+        print("Verificando dependencias del Limen...")
         print("=" * 60)
         print(f"📋 Leyendo paquetes desde requirements.txt...")
         print(f"📦 Paquetes requeridos encontrados: {len(self.required_packages)}")

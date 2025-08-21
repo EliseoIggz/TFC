@@ -1,4 +1,4 @@
-# Fitness Tracker - Paquete de Pruebas
+# Limen - Paquete de Pruebas
 # =====================================
 # Este paquete contiene las pruebas unitarias del proyecto
 

@@ -1,4 +1,4 @@
-# Fitness Tracker - API de Nutrición USDA FoodData Central
+# Limen - API de Nutrición USDA FoodData Central
 # ========================================================
 # Este archivo integra la API oficial de USDA para obtener información nutricional precisa
 

@@ -1,4 +1,4 @@
-# Fitness Tracker - Funciones Auxiliares
+# Limen - Funciones Auxiliares
 # ======================================
 # Este archivo contiene funciones útiles para el proyecto
 

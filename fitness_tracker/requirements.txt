@@ -1,4 +1,4 @@
-# Fitness Tracker - Dependencias del proyecto
+# Limen - Dependencias del proyecto
 # =========================================
 
 # Framework web para el dashboard

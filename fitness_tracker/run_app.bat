@@ -1,8 +1,33 @@
 @echo off
 echo ========================================
-echo    FITNESS TRACKER - LAUNCHER
+echo       LIMEN - LAUNCHER
 echo ========================================
 echo.
+
+:: Verificar si se ejecuta como administrador
+net session >nul 2>&1
+if errorlevel 1 (
+    echo ⚠️  ADVERTENCIA: Este script no se está ejecutando como administrador
+    echo.
+    echo Para una instalación completa de Python y configuración del PATH,
+    echo se recomienda ejecutar este script como administrador.
+    echo.
+    echo ¿Deseas continuar de todas formas? (S/N)
+    set /p choice=
+    if /i "%choice%"=="N" (
+        echo.
+        echo Para ejecutar como administrador:
+        echo 1. Haz clic derecho en este archivo
+        echo 2. Selecciona "Ejecutar como administrador"
+        echo.
+        pause
+        exit /b 0
+    )
+    echo.
+    echo Continuando sin privilegios de administrador...
+    echo Si hay problemas, ejecuta como administrador.
+    echo.
+)
 
 :: Verificar si Python esta instalado
 python --version >nul 2>&1
@@ -17,10 +42,12 @@ if errorlevel 1 (
         echo.
         echo Posibles causas:
         echo - Winget no esta disponible en tu sistema
-        echo - Sin permisos de administrador
+        echo - Sin permisos de administrador (MÁS PROBABLE)
         echo - Sin conexion a internet
         echo.
-        echo Solucion: Instala Python manualmente desde python.org
+        echo Soluciones:
+        echo 1. Ejecuta este script como administrador (RECOMENDADO)
+        echo 2. Instala Python manualmente desde python.org
         echo.
         pause
         exit /b 1
@@ -28,11 +55,36 @@ if errorlevel 1 (
     echo.
     echo Python instalado correctamente!
     echo.
-    echo IMPORTANTE: Cierra esta ventana y ejecuta el script nuevamente
-    echo para que Python sea reconocido por el sistema.
+    echo Refrescando variables de entorno...
+    
+    :: Intentar usar refreshenv si está disponible (Chocolatey)
+    call refreshenv 2>nul
+    if errorlevel 1 (
+        echo Refrescando PATH manualmente...
+        :: Añadir Python al PATH de la sesión actual
+        set "PATH=%PATH%;%LOCALAPPDATA%\Programs\Python\Python311\;%LOCALAPPDATA%\Programs\Python\Python311\Scripts\"
+        set "PATH=%PATH%;%PROGRAMFILES%\Python311\;%PROGRAMFILES%\Python311\Scripts\"
+        set "PATH=%PATH%;%USERPROFILE%\AppData\Local\Programs\Python\Python311\;%USERPROFILE%\AppData\Local\Programs\Python\Python311\Scripts\"
+        
+        echo PATH actualizado para esta sesión
+    ) else (
+        echo Variables de entorno refrescadas con refreshenv
+    )
+    
     echo.
-    pause
-    exit /b 0
+    echo Verificando que Python sea accesible...
+    python --version >nul 2>&1
+    if errorlevel 1 (
+        echo.
+        echo ⚠️  Python aún no es accesible en esta sesión
+        echo Cierra esta ventana y ejecuta el script nuevamente
+        echo para que Python sea reconocido completamente.
+        echo.
+        pause
+        exit /b 0
+    ) else (
+        echo ✅ Python es accesible y puede continuar
+    )
 )
 
 echo Python encontrado
@@ -105,7 +157,7 @@ if errorlevel 1 (
 
 :: Ejecutar la aplicación
 echo.
-echo Lanzando Fitness Tracker...
+echo Lanzando Limen...
 echo.
 echo ========================================
 echo     La aplicacion se abrira en tu navegador
@@ -118,5 +170,5 @@ streamlit run app.py
 
 :: Si llegamos aquí, la aplicación se cerró
 echo.
-echo 👋 Fitness Tracker se ha cerrado
+echo 👋 Limen se ha cerrado
 pause
