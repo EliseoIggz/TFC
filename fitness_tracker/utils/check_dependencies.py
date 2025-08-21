@@ -6,30 +6,56 @@ import subprocess
 import sys
 import importlib
 from typing import Dict, List
+import os
 
 class DependencyChecker:
     """Verificador de dependencias del proyecto Fitness Tracker"""
     
     def __init__(self):
-        """Inicializar verificador con todas las dependencias necesarias"""
-        self.required_packages = {
-            'streamlit': 'Framework web para el dashboard',
-            'plotly': 'Gráficas interactivas y visualizaciones',
-            'pandas': 'Manipulación y análisis de datos',
-            'requests': 'Peticiones HTTP para APIs externas',
-            'dateutil': 'Utilidades avanzadas de fecha y tiempo',
-            'openai': 'API de OpenAI para traducción automática (español-inglés)'
-        }
-        
+        """Inicializar verificador leyendo requirements.txt automáticamente"""
+        self.required_packages = self._read_requirements_file()
         self.dev_packages = {
             'pytest': 'Framework de testing',
             'pytest-cov': 'Cobertura de código en tests'
         }
     
+    def _read_requirements_file(self) -> Dict[str, str]:
+        """Leer requirements.txt automáticamente para obtener paquetes requeridos"""
+        packages = {}
+        requirements_path = os.path.join(os.path.dirname(__file__), '..', 'requirements.txt')
+        
+        with open(requirements_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                line = line.strip()
+                # Ignorar líneas vacías, comentarios y paquetes de desarrollo
+                if (line and 
+                    not line.startswith('#') and 
+                    '>=' in line and
+                    not line.startswith('pytest')):
+                    
+                    # Extraer nombre del paquete (antes del >=)
+                    package = line.split('>=')[0].strip()
+                    
+                    # Mapear nombres de paquetes a descripciones
+                    descriptions = {
+                        'streamlit': 'Framework web para el dashboard',
+                        'plotly': 'Gráficas interactivas y visualizaciones',
+                        'pandas': 'Manipulación y análisis de datos',
+                        'requests': 'Peticiones HTTP para APIs externas',
+                        'python-dateutil': 'Utilidades avanzadas de fecha y tiempo',
+                        'openai': 'API de OpenAI para traducción automática (español-inglés)'
+                    }
+                    
+                    packages[package] = descriptions.get(package, f'Paquete {package}')
+        
+        return packages
+    
     def check_dependencies(self) -> Dict[str, any]:
         """Verificar estado de todas las dependencias"""
         print("Verificando dependencias del Fitness Tracker...")
         print("=" * 60)
+        print(f"📋 Leyendo paquetes desde requirements.txt...")
+        print(f"📦 Paquetes requeridos encontrados: {len(self.required_packages)}")
         
         results = {
             'all_required_installed': True,
@@ -67,7 +93,19 @@ class DependencyChecker:
     def _is_package_installed(self, package: str) -> bool:
         """Verificar si un paquete está instalado y accesible"""
         try:
-            importlib.import_module(package)
+            # Mapear nombres de paquetes a módulos de importación
+            import_mapping = {
+                'python-dateutil': 'dateutil',
+                'openai': 'openai',
+                'streamlit': 'streamlit',
+                'plotly': 'plotly',
+                'pandas': 'pandas',
+                'requests': 'requests'
+            }
+            
+            # Usar el nombre de importación correcto
+            import_name = import_mapping.get(package, package)
+            importlib.import_module(import_name)
             return True
         except ImportError:
             return False
