@@ -46,7 +46,6 @@ class NutritionService:
             if params:
                 default_params.update(params)
             
-            logger.info(f"Realizando petición a: {url}")
             logger.debug(f"Parámetros: {default_params}")
             
             response = requests.get(
@@ -58,7 +57,6 @@ class NutritionService:
             
             if response.status_code == 200:
                 data = response.json()
-                logger.info(f"Respuesta exitosa de USDA API")
                 return data
             elif response.status_code == 401:
                 logger.error("Error de autenticación en USDA API - verificar API key")
@@ -92,15 +90,10 @@ class NutritionService:
                     translated_query = self.translation_service.translate_to_english(query)
                     if translated_query and translated_query.lower() != query.lower():
                         english_query = translated_query
-                        logger.info(f"Consulta traducida: '{query}' → '{english_query}'")
-                    else:
-                        logger.info(f"Consulta ya en inglés: '{query}'")
                 except Exception as e:
                     logger.warning(f"Error en traducción de consulta: {e}")
-                    logger.info(f"Usando consulta original: '{query}'")
             
             # 2. Buscar en USDA usando la consulta en inglés
-            logger.info(f"Buscando en USDA: '{english_query}'")
             
             params = {
                 'query': english_query,
@@ -113,7 +106,6 @@ class NutritionService:
             response = self._make_api_request('foods/search', params)
             
             if response and 'foods' in response and response['foods']:
-                logger.info(f"Resultados encontrados: {len(response['foods'])}")
                 return response
             else:
                 logger.warning(f"No se encontraron resultados para '{english_query}'")
@@ -127,7 +119,6 @@ class NutritionService:
     def get_food_details(self, fdc_id: int) -> Optional[Dict]:
         """Obtener detalles completos de un alimento por su FDC ID"""
         try:
-            logger.info(f"Obteniendo detalles del alimento FDC ID: {fdc_id}")
             
             response = self._make_api_request(f'food/{fdc_id}')
             return response
@@ -139,7 +130,6 @@ class NutritionService:
     def get_nutrition_info(self, food: str, grams: float) -> Dict:
         """Obtener información nutricional de un alimento"""
         try:
-            logger.info(f"Obteniendo nutrición para: '{food}' - {grams}g")
             
             # Buscar el alimento
             search_results = self.search_foods(food)
@@ -166,7 +156,6 @@ class NutritionService:
             else:
                 nutrition_data['product_name'] = selected_food.get('description', food)
             
-            logger.info(f"Nutrición obtenida: {nutrition_data['calories']} cal para {grams}g")
             return nutrition_data
             
         except ValueError as ve:
@@ -177,7 +166,6 @@ class NutritionService:
     
     def _show_food_options(self, foods: List[Dict], search_term: str, grams: float) -> Dict:
         """Mostrar opciones de alimentos para que el usuario elija"""
-        logger.info(f"Mostrando {len(foods)} opciones para '{search_term}'")
         
         options = []
         for i, food in enumerate(foods[:10]):  # Máximo 10 opciones
@@ -193,7 +181,6 @@ class NutritionService:
                 'fdc_id': food.get('fdcId'),
                 'name': display_name,
                 'original_name': food.get('description', ''),
-                'brand_owner': food.get('brandOwner', 'Sin marca'),
                 'calories_per_100g': nutrition['calories'],
                 'proteins_per_100g': nutrition['proteins'],
                 'carbs_per_100g': nutrition['carbs'],
@@ -227,9 +214,6 @@ class NutritionService:
             spanish_name = self.translation_service.translate_to_spanish(selected_food.get('description', ''))
             if spanish_name:
                 nutrition_data['product_name'] = spanish_name
-            
-            logger.info(f"Alimento seleccionado: {selected_option['display_name']}")
-            logger.info(f"Nutrición: {nutrition_data['calories']} cal, {nutrition_data['proteins']}g proteína")
             
             return nutrition_data
             
@@ -287,11 +271,7 @@ class NutritionService:
                 'sodium': round(nutrition_values.get('sodium', 0) * multiplier, 1),
                 'cholesterol': round(nutrition_values.get('cholesterol', 0) * multiplier, 1),
                 'product_name': food.get('description', 'Producto'),
-                'brand': food.get('brandOwner', 'Sin marca'),
-                'fdc_id': food.get('fdcId', 'Sin ID'),
-                'data_type': food.get('dataType', 'Desconocido'),
-                'scientific_name': food.get('scientificName', ''),
-                'category': food.get('foodCategory', 'Sin categoría')
+                'fdc_id': food.get('fdcId', 'Sin ID')
             }
             
         except Exception as e:
@@ -315,13 +295,9 @@ class NutritionService:
                 results.append({
                     'name': display_name,
                     'original_name': food.get('description', ''),
-                    'brand': food.get('brandOwner', 'Sin marca'),
-                    'fdc_id': food.get('fdcId', 'Sin ID'),
-                    'data_type': food.get('dataType', 'Desconocido'),
-                    'category': food.get('foodCategory', 'Sin categoría')
+                    'fdc_id': food.get('fdcId', 'Sin ID')
                 })
             
-            logger.info(f"Búsqueda completada: {len(results)} alimentos encontrados")
             return results
             
         except Exception as e:
@@ -352,11 +328,7 @@ class NutritionService:
                 return {
                     'name': display_name,
                     'original_name': food_details.get('description', ''),
-                    'brand': food_details.get('brandOwner', 'Sin marca'),
                     'fdc_id': food_details.get('fdcId', 'Sin ID'),
-                    'data_type': food_details.get('dataType', 'Desconocido'),
-                    'category': food_details.get('foodCategory', 'Sin categoría'),
-                    'scientific_name': food_details.get('scientificName', ''),
                     'ingredients': food_details.get('ingredients', 'Sin ingredientes'),
                     'allergens': food_details.get('allergens', []),
                     'nutrients': food_details.get('foodNutrients', [])

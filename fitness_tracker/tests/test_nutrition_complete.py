@@ -63,7 +63,7 @@ def test_nutrition_complete():
             if search_results:
                 first_result = search_results[0]
                 print(f"   📦 Producto: {first_result['name']}")
-                print(f"   🏷️  Marca: {first_result['brand']}")
+
         except Exception as e:
             print(f"   ❌ Error: {e}")
     
@@ -207,7 +207,7 @@ def test_nutrition_complete():
         barcode_result = nutrition_api.get_product_by_barcode("5449000000996")  # Coca-Cola
         if barcode_result:
             print(f"   ✅ Producto encontrado: {barcode_result['name']}")
-            print(f"      🏷️  Marca: {barcode_result['brand']}")
+
         else:
             print(f"   ⚠️  Producto no encontrado")
         

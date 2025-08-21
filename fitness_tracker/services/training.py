@@ -3,7 +3,7 @@
 # Este archivo calcula calorías quemadas en actividades deportivas
 
 import config
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 class TrainingService:
     """Servicio para calcular calorías quemadas en actividades deportivas"""
@@ -242,11 +242,16 @@ class TrainingService:
         results = []
         query_lower = query.lower()
         
+        # Si no hay query, devolver todos los deportes
+        if not query or query.strip() == "":
+            return self.get_all_sports()
+        
         for sport_name, sport_data in self.sports_database.items():
             if (query_lower in sport_name or 
                 query_lower in sport_data['name'].lower() or
                 query_lower in sport_data['category']):
                 results.append({
+                    'key': sport_name,
                     'name': sport_data['name'],
                     'category': sport_data['category'],
                     'met': sport_data['met']
@@ -265,3 +270,122 @@ class TrainingService:
                 'met': sport_data['met']
             })
         return results
+    
+    # ========================================
+    # MÉTODOS DE VALIDACIÓN (RESPETANDO MVC)
+    # ========================================
+    
+    def validate_training_input(self, minutes_input: str, selected_sport: str) -> Dict:
+        """
+        Validar input de entrenamiento según el patrón MVC
+        Retorna: {'valid': bool, 'minutes': Optional[int], 'error': Optional[str]}
+        """
+        # Validar que se haya seleccionado un deporte
+        if not selected_sport:
+            return {
+                'valid': False,
+                'minutes': None,
+                'error': '❌ Por favor selecciona un deporte'
+            }
+        
+        # Validar que se haya introducido minutos
+        if not minutes_input or not minutes_input.strip():
+            return {
+                'valid': False,
+                'minutes': None,
+                'error': '❌ Debes introducir una cantidad de minutos'
+            }
+        
+        # Validar que sea un número válido
+        try:
+            minutes = int(minutes_input)
+        except ValueError:
+            return {
+                'valid': False,
+                'minutes': None,
+                'error': '❌ Por favor introduce un número válido'
+            }
+        
+        # Validar rango de minutos
+        if minutes < 1 or minutes > 1440:
+            return {
+                'valid': False,
+                'minutes': None,
+                'error': '❌ Los minutos deben estar entre 1 y 1440'
+            }
+        
+        # Validar que el deporte existe en la base de datos
+        if selected_sport not in self.sports_database:
+            return {
+                'valid': False,
+                'minutes': None,
+                'error': f'❌ Deporte "{selected_sport}" no encontrado'
+            }
+        
+        # Si todo es válido
+        return {
+            'valid': True,
+            'minutes': minutes,
+            'error': None
+        }
+    
+    def get_training_preview(self, selected_sport: str, minutes: int, user_weight: float) -> Dict:
+        """
+        Obtener vista previa del entrenamiento (calorías estimadas, info del deporte)
+        Retorna: {'sport_info': Dict, 'estimated_calories': int, 'valid': bool}
+        """
+        if not selected_sport or selected_sport not in self.sports_database:
+            return {'valid': False, 'error': 'Deporte no válido'}
+        
+        if not minutes or minutes <= 0:
+            return {'valid': False, 'error': 'Minutos no válidos'}
+        
+        sport_data = self.sports_database[selected_sport]
+        estimated_calories = round((sport_data['met'] * user_weight * minutes) / 60)
+        
+        return {
+            'valid': True,
+            'sport_info': sport_data,
+            'estimated_calories': estimated_calories
+        }
+    
+    def validate_sport_selection(self, selected_category: str, selected_sport_key: str) -> Dict:
+        """
+        Validar selección de deporte
+        Retorna: {'valid': bool, 'selected_sport': Optional[str], 'error': Optional[str]}
+        """
+        if not selected_category or selected_category == '':
+            return {
+                'valid': False,
+                'selected_sport': None,
+                'error': '❌ Por favor selecciona una categoría'
+            }
+        
+        if not selected_sport_key or selected_sport_key == '':
+            return {
+                'valid': False,
+                'selected_sport': None,
+                'error': '❌ Por favor selecciona un deporte'
+            }
+        
+        # Obtener deportes disponibles según la categoría
+        all_sports = self.get_all_sports()
+        if selected_category == 'Todas':
+            available_sports = all_sports
+        else:
+            available_sports = [sport for sport in all_sports if sport['category'] == selected_category]
+        
+        # Buscar el deporte seleccionado
+        sport_options = {sport['name']: sport['key'] for sport in available_sports}
+        if selected_sport_key in sport_options:
+            return {
+                'valid': True,
+                'selected_sport': sport_options[selected_sport_key],
+                'error': None
+            }
+        else:
+            return {
+                'valid': False,
+                'selected_sport': None,
+                'error': '❌ Deporte no válido para la categoría seleccionada'
+            }

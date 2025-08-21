@@ -12,7 +12,7 @@ class UserModel:
     def __init__(self):
         self.db = Database()
         self.conn = self.db.get_connection()
-        # logger.info("UserModel inicializado")
+
 
     def get_profile(self):
         """Obtener el perfil (fila única id=1)."""
@@ -22,10 +22,10 @@ class UserModel:
             row = cursor.fetchone()
             if row:
                 profile = {"id": row["id"], "name": row["name"] or "", "weight": row["weight"] if row["weight"] is not None else 70.0, "objetivo": row["objetivo"] if row["objetivo"] is not None else "mantener_peso"}
-                # logger.info(f"Perfil encontrado en BD: {profile}")
+
                 return profile
             else:
-                logger.info("No se encontró perfil en BD, retornando valores por defecto")
+
                 return {"id": 1, "name": "", "weight": 70.0, "objetivo": "mantener_peso"}
         except Exception as e:
             logger.error(f"Error al obtener perfil: {e}")
@@ -41,7 +41,7 @@ class UserModel:
             if objetivo is None:
                 objetivo = "mantener_peso"
             
-            logger.info(f"Intentando actualizar perfil existente...")
+
             # Intentar actualizar; si no existe, insertar
             cursor.execute(
                 """
@@ -53,7 +53,7 @@ class UserModel:
             )
             
             if cursor.rowcount == 0:
-                logger.info("Perfil no existe, creando nuevo...")
+
                 cursor.execute(
                     """
                     INSERT INTO user_profile (id, name, weight, objetivo, created_at, updated_at)
@@ -61,12 +61,7 @@ class UserModel:
                     """,
                     (name, weight, objetivo, now, now),
                 )
-                logger.info("Nuevo perfil creado")
-            else:
-                logger.info("Perfil existente actualizado")
-            
             self.conn.commit()
-            logger.info("Cambios confirmados en BD")
             return {"success": True}
         except Exception as e:
             logger.error(f"Error al upsert perfil: {e}")

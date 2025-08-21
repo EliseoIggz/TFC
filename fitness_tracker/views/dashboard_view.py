@@ -1,10 +1,7 @@
 # Fitness Tracker - Vista del Dashboard
-# Este archivo contiene la interfaz principal de la aplicación con Streamlit
-
 import streamlit as st
 import plotly.graph_objects as go
 from datetime import date
-import pandas as pd
 from controllers.training_controller import TrainingController
 from controllers.nutrition_controller import NutritionController
 from controllers.user_controller import UserController
@@ -12,352 +9,389 @@ import config
 from utils.helpers import format_date, format_date_display
 
 class DashboardView:
-    """Vista principal del dashboard de Fitness Tracker"""
+    """Vista principal del dashboard"""
     
     def __init__(self):
-        """Inicializar la vista del dashboard"""
+        """Inicializar controladores"""
         self.training_controller = TrainingController()
-        self.nutrition_controller = NutritionController()
+        self.nutrition_controller = NutritionController(training_controller=self.training_controller)
         self.user_controller = UserController()
         
         st.set_page_config(
-            page_title=config.STREAMLIT_TITLE,
+            page_title="Limen - Fitness Tracker",
             layout=config.STREAMLIT_LAYOUT,
             initial_sidebar_state=config.STREAMLIT_SIDEBAR_STATE
         )
     
     def render(self):
-        """Renderizar el dashboard completo"""
-        st.title("🏃‍♂️ Fitness Tracker")
+        """Renderizar dashboard completo"""
+        # Logo + Título
+        col1, col2 = st.columns([1, 4])
+        with col1:
+            st.image("assets/images/logo.png", width=80, use_container_width=False)
+        with col2:
+            st.title("Limen")
+        
         st.markdown("**Seguimiento de entrenamientos y nutrición**")
         
-        # Obtener perfil UNA SOLA VEZ y almacenarlo en session_state
+        self._init_user_profile()
+        self._render_header()
+        
+        with st.sidebar:
+            self._render_profile_form()
+            self._render_input_forms()
+        
+        self._render_main_content()
+    
+    def _init_user_profile(self):
+        """Inicializar perfil de usuario"""
         if 'user_profile' not in st.session_state:
             profile = self.user_controller.get_profile()
             if profile['success']:
-                st.session_state['user_profile'] = profile['data']
-                st.session_state['user_name'] = profile['data']['name']
-                st.session_state['user_weight'] = profile['data']['weight']
+                data = profile['data']
+                st.session_state.update({
+                    'user_profile': data,
+                    'user_name': data['name'],
+                    'user_weight': data['weight']
+                })
             else:
-                st.session_state['user_profile'] = {'name': '', 'weight': 70.0, 'objetivo': 'mantener_peso'}
-                st.session_state['user_name'] = ''
-                st.session_state['user_weight'] = 70.0
-        
-        # Usar perfil del session_state
-        user_profile = st.session_state['user_profile']
-        user_name = user_profile.get('name', '')
-        user_weight = user_profile.get('weight', 70.0)
-        
-        if user_name:            
+                st.session_state.update({
+                    'user_profile': {'name': '', 'weight': 70.0, 'objetivo': 'mantener_peso'},
+                    'user_name': '',
+                    'user_weight': 70.0
+                })
+    
+    def _render_header(self):
+        """Renderizar cabecera con datos del usuario"""
+        profile_display = self.user_controller.get_profile_display_data(st.session_state['user_profile'])
+        if profile_display['success'] and profile_display['data']['name']:
+            data = profile_display['data']
             col1, col2, col3 = st.columns(3)
             with col1:
-                st.metric("👤 Usuario", user_name)
+                st.metric("👤 Usuario", data['name'])
             with col2:
-                st.metric("⚖️ Peso", f"{user_weight} kg")
+                st.metric("⚖️ Peso", data['weight_formatted'])
             st.divider()
+        elif not profile_display['success']:
+            st.error("Error al cargar datos del perfil")
+    
+    def _render_profile_form(self):
+        """Renderizar formulario de perfil"""
+        st.header("👤 Mi Perfil")
         
-        with st.sidebar:
-            st.header("👤 Mi Perfil")
-            
-            # Mostrar mensaje de perfil actualizado si existe
-            if 'profile_updated' in st.session_state and st.session_state.profile_updated:
-                st.success("✅ Perfil actualizado automáticamente")
-                # Limpiar del session_state
-                del st.session_state.profile_updated
-            
-            user_name = st.text_input(
-                "Nombre:",
-                value=st.session_state.get('user_name', ''),
-                placeholder="Tu nombre",
-                key="user_name_input"
-            )
-            user_weight = st.number_input(
-                "Peso (kg):",
-                min_value=30.0,
-                max_value=200.0,
-                value=st.session_state.get('user_weight', 70.0),
-                step=0.5,
-                key="user_weight_input"
-            )
-            
-            current_name = st.session_state.get('user_name', '')
-            current_weight = st.session_state.get('user_weight', 70.0)
-            
-            if user_name != current_name or user_weight != current_weight:
+        # Mostrar mensaje de actualización
+        if st.session_state.get('profile_updated'):
+            st.success("✅ Perfil actualizado automáticamente")
+            del st.session_state.profile_updated
+        
+        # Inputs de perfil
+        user_name = st.text_input("Nombre:", value=st.session_state.get('user_name', ''), 
+                                 placeholder="Tu nombre", key="user_name_input")
+        user_weight = st.number_input("Peso (kg):", min_value=30.0, max_value=200.0,
+                                     value=st.session_state.get('user_weight', 70.0), 
+                                     step=0.5, key="user_weight_input")
+        
+        # Guardar si hay cambios
+        current_name = st.session_state.get('user_name', '')
+        current_weight = st.session_state.get('user_weight', 70.0)
+        
+        if user_name != current_name or user_weight != current_weight:
+            validation = self.user_controller.validate_profile_input(user_name, user_weight)
+            if validation['valid']:
                 result = self.user_controller.save_profile(user_name, user_weight)
                 if result['success']:
-                    st.session_state['user_name'] = user_name
-                    st.session_state['user_weight'] = user_weight
-                    st.session_state['profile_updated'] = True
+                    st.session_state.update({
+                        'user_name': user_name,
+                        'user_weight': user_weight,
+                        'profile_updated': True
+                    })
                     st.rerun()
                 else:
                     st.error(f"❌ Error al guardar: {result['message']}")
-            
-            if user_name:
-                st.success(f"👋 ¡Hola {user_name}!")
-                st.info(f"⚖️ Tu peso: {user_weight} kg")
-            
-            st.divider()
-            st.header("📝 Añadir Registro")
-            tab1, tab2 = st.tabs(["🍽️ Comida", "💪 Entrenamiento"])
-            
-            with tab1:
-                self._render_meal_form()
-            with tab2:
-                self._render_training_form()
+            else:
+                st.error(validation['error'])
         
+        # Mostrar saludo
+        if user_name:
+            st.success(f"👋 ¡Hola {user_name}!")
+            st.info(f"⚖️ Tu peso: {st.session_state.get('user_weight', 70.0)} kg")
+    
+    def _render_input_forms(self):
+        """Renderizar formularios de entrada"""
+        st.divider()
+        st.header("📝 Añadir Registro")
+        tab1, tab2 = st.tabs(["🍽️ Comida", "💪 Entrenamiento"])
+        
+        with tab1:
+            self._render_meal_form()
+        with tab2:
+            self._render_training_form()
+    
+    def _render_meal_form(self):
+        """Formulario de comidas"""
+        st.subheader("Nueva Comida")
+        
+        if st.session_state.get('food_options'):
+            self._render_food_selector(st.session_state.food_options)
+        else:
+            food = st.text_input("Alimento", placeholder="Ej: pollo, arroz, manzana...", key="food_input")
+            grams = st.number_input("Gramos", min_value=1, max_value=10000, value=100, key="grams_input")
+            
+            if st.button("➕ Añadir Comida", type="primary", key="add_meal_button") and food and grams:
+                self._process_meal_submission(food, grams)
+    
+    def _process_meal_submission(self, food, grams):
+        """Procesar envío de comida"""
+        # Mostrar búsqueda
+        search_placeholder = st.empty()
+        with search_placeholder.container():
+            st.info(f"🔍 Buscando información nutricional para '{food}'...")
+        
+        # Procesar usando ViewModel
+        result = self.nutrition_controller.get_meal_form_submission_result(food, grams)
+        search_placeholder.empty()
+        
+        if result['success']:
+            st.session_state.update({
+                'meal_added': True,
+                'meal_message': result['message']
+            })
+            if result.get('should_rerun'):
+                st.rerun()
+        elif result.get('multiple_options'):
+            # Asegurar que food_options se actualice antes del rerun
+            st.session_state.food_options = result.get('options_data', {})
+            st.rerun()
+        else:
+            st.error(result['message'])
+    
+    def _render_food_selector(self, options_data):
+        """Selector de alimentos múltiples"""
+        selector_vm = self.nutrition_controller.get_food_selector_viewmodel(options_data)
+        if not selector_vm['success']:
+            st.error(selector_vm['error'])
+            return
+        
+        data = selector_vm['selector_data']
+        st.info(f"🔍 Se encontraron {data['options_count']} opciones para '{data['search_term']}'")
+        
+        # Botón cancelar
+        col1, col2 = st.columns([1, 4])
+        with col1:
+            if st.button("❌ Cancelar", key="cancel_food_selection"):
+                self._clear_food_selection()
+                st.rerun()
+        
+        # Selector de opciones
+        select_key = f"food_selector_{data['search_term']}_{id(data['search_term'])}"
+        
+        selected_index = st.selectbox(
+            "Selecciona el alimento:",
+            options=list(range(len(data['option_labels']))),
+            format_func=lambda x: data['option_labels'][x],
+            key=select_key,
+            help="Selecciona el alimento que quieres añadir"
+        )
+        
+        # Mostrar detalles de la opción seleccionada
+        if selected_index is not None:
+            self._render_food_option_details(options_data, selected_index, data)
+    
+    def _render_food_option_details(self, options_data, selected_index, selector_data):
+        """Mostrar detalles de opción seleccionada"""
+        option = options_data['options'][selected_index]
+        st.divider()
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            st.info(f"📦 **Producto:** {option['name']}")
+        
+        with col2:
+            st.info(f"🔥 **Calorías:** {option['calories_per_100g']} cal/100g")
+            st.info(f"⚖️ **Cantidad:** {options_data['grams']}g")
+            for nutrient, emoji in [('proteins_per_100g', '🥩'), ('carbs_per_100g', '🍞'), ('fats_per_100g', '🧈')]:
+                if nutrient in option:
+                    name = nutrient.replace('_per_100g', '').replace('carbs', 'carbohidratos').replace('proteins', 'proteínas').replace('fats', 'grasas')
+                    st.info(f"{emoji} **{name.title()}:** {option[nutrient]}g/100g")
+        
+        st.success(f"🧮 **Total:** {option['calories_per_100g']} cal/100g × {options_data['grams']}g")
+        
+        # Botón confirmar
+        confirm_key = f"{selector_data['confirm_key']}_{selected_index}"
+        if st.button(f"✅ Añadir {option['name']}", type="primary", key=confirm_key):
+            self._process_food_selection(options_data, selected_index)
+    
+    def _process_food_selection(self, options_data, selected_index):
+        """Procesar selección de alimento"""
+        result = self.nutrition_controller.get_food_selection_result(options_data, selected_index)
+        
+        if result['success']:
+            st.success(result['message'])
+            if result.get('should_clear_selector'):
+                self._clear_food_selection()
+            st.session_state.update({
+                'meal_added': True,
+                'meal_message': result['message']
+            })
+            if result.get('should_rerun'):
+                st.rerun()
+        else:
+            st.error(result['message'])
+    
+    def _clear_food_selection(self):
+        """Limpiar selección de alimentos"""
+        # Limpiar todas las claves relacionadas con la selección de alimentos
+        keys_to_remove = ['food_options', 'food_search_term']
+        for key in keys_to_remove:
+            st.session_state.pop(key, None)
+        
+        # Limpiar claves de widgets de Streamlit
+        for key in list(st.session_state.keys()):
+            if key.startswith('food_selector_') or key.startswith('food_radio_'):
+                del st.session_state[key]
+    
+    def _render_training_form(self):
+        """Formulario de entrenamientos"""
+        st.subheader("Nuevo Entrenamiento")
+        
+        user_weight = st.session_state.get('user_weight', 70.0)
+        
+        # Obtener ViewModel inicial
+        initial_vm = self.training_controller.get_training_form_viewmodel("", "", user_weight)
+        if not initial_vm['success']:
+            st.error(initial_vm['error'])
+            return
+        
+        form_data = initial_vm['form_data']
+        
+        # 1. Categoría
+        categories = form_data['categories']
+        selected_category = st.selectbox("🏷️ Categoría de Deporte:", 
+                                       options=categories['options'],
+                                       format_func=categories['format_func'],
+                                       index=st.session_state.get('training_category_index', 1),
+                                       key="training_category_selector")
+        
+        # 2. Deporte
+        selected_sport = self._render_sport_selector(form_data['sports'], selected_category)
+        
+        # 3. Minutos
+        minutes_input = st.text_input("⏱️ Minutos", 
+                                    value=st.session_state.get('training_minutes', ''),
+                                    placeholder="Introduce el tiempo",
+                                    help="Valor entre 1 y 1440 minutos",
+                                    key="training_minutes_input")
+        
+        # Generar ViewModel completo
+        vm = self.training_controller.get_training_form_viewmodel(minutes_input, selected_sport, user_weight)
+        if not vm['success']:
+            st.error(vm['error'])
+            return
+        
+        self._render_training_validation_and_submit(vm['form_data'], selected_sport, user_weight)
+    
+    def _render_sport_selector(self, sports_data, selected_category):
+        """Renderizar selector de deportes"""
+        if not selected_category or selected_category == '':
+            return ""
+        
+        all_sports = sports_data['all_sports']
+        available_sports = all_sports if selected_category == 'Todas' else [s for s in all_sports if s['category'] == selected_category]
+        
+        if not available_sports:
+            st.warning("No hay deportes disponibles en esta categoría")
+            return ""
+        
+        sport_options = {sport['name']: sport['key'] for sport in available_sports}
+        sport_options_list = [''] + list(sport_options.keys())
+        
+        selected_sport_key = st.selectbox("🏃‍♂️ Selecciona el Deporte:",
+                                        options=sport_options_list,
+                                        format_func=lambda x: "Escoge un deporte" if x == '' else x,
+                                        help="Selecciona el deporte que realizaste",
+                                        key="training_sport_selector")
+        
+        return sport_options.get(selected_sport_key, "")
+    
+    def _render_training_validation_and_submit(self, form_data, selected_sport, user_weight):
+        """Validación y envío de entrenamiento"""
+        validation = form_data['validation']
+        
+        # Mostrar errores
+        if validation['show_error']:
+            st.error(validation['error_message'])
+        
+        # Mostrar mensaje de éxito
+        if st.session_state.get('training_success_message'):
+            st.success(st.session_state['training_success_message'])
+            del st.session_state['training_success_message']
+        
+        # Preview
+        if form_data['preview']:
+            preview = form_data['preview']
+            st.info(preview['display_text'])
+            st.info(preview['calories_text'])
+        
+        # Botón enviar
+        if st.button("🏃‍♂️ Añadir Entrenamiento", type="primary"):
+            if validation['is_valid']:
+                result = self.training_controller.get_training_form_submission_result(
+                    selected_sport, validation['minutes'], user_weight)
+                
+                if result['success']:
+                    st.session_state['training_success_message'] = result['message']
+                    if result.get('should_clear_form') and 'clear_form_data' in result:
+                        clear_data = result['clear_form_data']
+                        st.session_state.update({
+                            'training_category_index': clear_data.get('category_index', 1),
+                            'training_minutes': clear_data.get('minutes', '')
+                        })
+                    if result.get('should_rerun'):
+                        st.rerun()
+                else:
+                    st.error(result['message'])
+            else:
+                if not selected_sport:
+                    st.warning("❌ Por favor selecciona un deporte")
+                if not validation['minutes']:
+                    st.warning("❌ Por favor especifica una cantidad válida de minutos")
+        
+        # Estadísticas
+        st.divider()
+        st.markdown("**📊 Estadísticas de la Base de Datos:**")
+        stats = form_data['stats']
+        col1, col2 = st.columns(2)
+        with col1:
+            st.metric("Total Deportes", stats['total_sports'])
+        with col2:
+            st.metric("Total Categorías", stats['total_categories'])
+    
+    def _render_main_content(self):
+        """Contenido principal del dashboard"""
         col1, col2 = st.columns([2, 1])
         with col1:
             self._render_calories_chart()
         with col2:
             self._render_daily_stats()
         
-
-        
-        self._render_macros_section()
+        self._render_macros_chart()
         self._render_recent_records()
     
-    def _render_meal_form(self):
-        """Renderizar formulario para añadir comida"""
-        st.subheader("Nueva Comida")
-        
-        if 'food_options' in st.session_state and st.session_state.food_options:
-            self._render_food_selector(st.session_state.food_options)
-        else:
-            food = st.text_input("Alimento", placeholder="Ej: pollo, arroz, manzana...", key="food_input")
-            grams = st.number_input("Gramos", min_value=1, max_value=10000, value=100, key="grams_input")
-            
-            if st.button("➕ Añadir Comida", type="primary", key="add_meal_button"):
-                if food and grams:
-                    search_placeholder = st.empty()
-                    with search_placeholder.container():
-                        st.info(f"🔍 Buscando información nutricional para '{food}'...")
-                        result = self.nutrition_controller.add_meal(food, grams)
-                    search_placeholder.empty()
-                    
-                    if result['success']:
-                        # Mostrar mensaje temporal de éxito
-                        st.session_state['meal_added'] = True
-                        st.session_state['meal_message'] = result['message']
-                        st.rerun()
-                    elif result.get('multiple_options'):
-                        st.session_state.food_options = result['options_data']
-                        st.rerun()
-                    else:
-                        st.error(result['message'])
-                else:
-                    st.warning("Por favor completa todos los campos")
-    
-    def _render_food_selector(self, options_data: dict):
-        """Renderizar selector interactivo de alimentos"""
-        st.session_state.food_options = options_data
-        st.info(f"🔍 Se encontraron {len(options_data['options'])} opciones para '{options_data['search_term']}':")
-        
-        col1, col2 = st.columns([1, 4])
-        with col1:
-            if st.button("❌ Cancelar", key="cancel_food_selection"):
-                st.session_state.pop('food_options', None)
-                for key in list(st.session_state.keys()):
-                    if key.startswith('food_radio_'):
-                        del st.session_state[key]
-                st.rerun()
-        with col2:
-            st.write("")
-        
-        option_labels = [opt['display_name'] for opt in options_data['options']]
-        radio_key = f"food_radio_{options_data['search_term']}_{len(options_data['options'])}"
-        selected_index = st.radio(
-            "Selecciona el producto específico:",
-            options=range(len(option_labels)),
-            format_func=lambda x: option_labels[x],
-            key=radio_key,
-            index=0
-        )
-        
-        if selected_index is not None:
-            selected_option = options_data['options'][selected_index]
-            st.divider()
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                st.info(f"📦 **Producto:** {selected_option['name']}")
-                st.info(f"🏷️ **Marca:** {selected_option.get('brand_owner', selected_option.get('brand', 'Sin marca'))}")
-                if 'data_type' in selected_option and selected_option['data_type'] != 'Desconocido':
-                    st.info(f"📊 **Tipo:** {selected_option['data_type']}")
-            
-            with col2:
-                st.info(f"🔥 **Calorías:** {selected_option['calories_per_100g']} cal/100g")
-                st.info(f"⚖️ **Cantidad:** {options_data['grams']}g")
-                if 'proteins_per_100g' in selected_option:
-                    st.info(f"🥩 **Proteínas:** {selected_option['proteins_per_100g']}g/100g")
-                if 'carbs_per_100g' in selected_option:
-                    st.info(f"🍞 **Carbohidratos:** {selected_option['carbs_per_100g']}g/100g")
-                if 'fats_per_100g' in selected_option:
-                    st.info(f"🧈 **Grasas:** {selected_option['fats_per_100g']}g/100g")
-            
-            total_calories = round((selected_option['calories_per_100g'] * options_data['grams']) / 100)
-            st.success(f"🧮 **Total:** {total_calories} calorías para {options_data['grams']}g")
-            
-            if 'category' in selected_option and selected_option['category'] != 'Sin categoría':
-                st.info(f"📂 **Categoría USDA:** {selected_option['category']}")
-            
-            confirm_key = f"confirm_food_{options_data['search_term']}_{selected_index}"
-            if st.button(f"✅ Añadir {selected_option['name']}", type="primary", key=confirm_key):
-                process_placeholder = st.empty()
-                with process_placeholder.container():
-                    st.info(f"⚙️ Procesando selección de '{selected_option['name']}'...")
-                    result = self.nutrition_controller.add_meal_from_selection(options_data, selected_index)
-                process_placeholder.empty()
-                
-                if result['success']:
-                    st.success(result['message'])
-                    st.session_state.pop('food_options', None)
-                    for key in list(st.session_state.keys()):
-                        if key.startswith('food_radio_'):
-                            del st.session_state[key]
-                    # Mostrar mensaje temporal de éxito
-                    st.session_state['meal_added'] = True
-                    st.session_state['meal_message'] = result['message']
-                    st.rerun()
-                else:
-                    st.error(result['message'])
-    
-    def _render_training_form(self):
-        """Renderizar formulario para añadir entrenamiento"""
-        st.subheader("Nuevo Entrenamiento")
-        
-        training_service = self.training_controller.training_service
-        categories = training_service.get_sport_categories()
-        emojis = {
-            'deporte_equipo': '🏀', 'deporte_raqueta': '🎾', 'deporte_acuatico': '🏊‍♂️',
-            'deporte_invierno': '⛷️', 'deporte_combate': '🥊', 'deporte_resistencia': '🏃‍♂️',
-            'deporte_fuerza': '💪', 'deporte_aventura': '🧗‍♂️', 'deporte_baile': '💃',
-            'deporte_precision': '🎯', 'fitness': '🧘‍♀️', 'ejercicio_fuerza': '🏋️',
-            'actividad_diaria': '🚶‍♂️', 'deporte_extremo': '🪂', 'deporte_motor': '🏍️',
-            'deporte_tradicional': '🏺', 'deporte_acuatico_extremo': '🏄‍♂️', 'deporte_invierno_extremo': '🎿'
-        }
-        category_names = {k: f"{v} {k.replace('_', ' ').title()}" for k, v in emojis.items()}
-        
-        # Agregar opción vacía para simular placeholder
-        category_options = [''] + ['Todas'] + list(categories.keys())
-        selected_category = st.selectbox(
-            "🏷️ Categoría de Deporte:",
-            options=category_options,
-            format_func=lambda x: "Escoge una categoría" if x == '' else (category_names.get(x, x) if x != 'Todas' else 'Todas'),
-            index=st.session_state.get('training_category_index', 1),  # Usar session_state
-            key="training_category_selector"
-        )
-        
-        all_sports = training_service.get_all_sports()
-        # Solo mostrar deportes si se seleccionó una categoría válida
-        if selected_category and selected_category != '':
-            available_sports = all_sports if selected_category == 'Todas' else [
-                sport for sport in all_sports if sport['category'] == selected_category
-            ]
-        else:
-            available_sports = []
-        
-        if available_sports:
-            sport_options = {f"{sport['name']}": sport['key'] for sport in available_sports}
-            # Agregar opción vacía para simular placeholder
-            sport_options_list = [''] + list(sport_options.keys())
-            selected_sport_key = st.selectbox(
-                "🏃‍♂️ Selecciona el Deporte:",
-                options=sport_options_list,
-                format_func=lambda x: "Escoge un deporte" if x == '' else x,
-                help="Selecciona el deporte que realizaste",
-                key="training_sport_selector"
-            )
-            # Solo obtener el deporte si se seleccionó uno válido
-            if selected_sport_key and selected_sport_key in sport_options:
-                selected_sport = sport_options[selected_sport_key]
-            else:
-                selected_sport = ""
-        else:
-            selected_sport = ""
-            st.warning("No hay deportes disponibles en esta categoría")
-        
-        # Usar text_input con validación para simular placeholder
-        minutes_input = st.text_input("⏱️ Minutos", value=st.session_state.get('training_minutes', ''), placeholder="Introduce el tiempo", help="Valor entre 1 y 1440 minutos", key="training_minutes_input")
-        
-        # Mostrar mensaje de éxito si existe
-        if 'training_success_shown' in st.session_state:
-            if selected_sport and selected_sport in training_service.sports_database:
-                sport_data = training_service.sports_database[selected_sport]
-                calories_burned = round((sport_data['met'] * user_weight * minutes) / 60)
-                st.success(f"✅ Entrenamiento añadido exitosamente! Has quemado {calories_burned} calorías.")
-            else:
-                st.success("✅ Entrenamiento añadido exitosamente!")
-            
-            # Limpiar el mensaje después de mostrarlo
-            del st.session_state['training_success_shown']
-        
-        # Validar y convertir el input
-        try:
-            if minutes_input and minutes_input.strip():
-                minutes = int(minutes_input)
-                if minutes < 1 or minutes > 1440:
-                    st.error("Los minutos deben estar entre 1 y 1440")
-                    minutes = 30
-            else:
-                minutes = 30
-        except ValueError:
-            st.error("Por favor introduce un número válido")
-            minutes = 30
-        
-        if selected_sport and selected_sport in training_service.sports_database:
-            sport_data = training_service.sports_database[selected_sport]
-            st.info(f"📊 **{sport_data['name']}** - {sport_data['category']}")
-            user_weight = st.session_state.get('user_weight', 70.0)
-            estimated_calories = round((sport_data['met'] * user_weight * minutes) / 60)
-        
-        if st.button("🏃‍♂️ Añadir Entrenamiento", type="primary"):
-            if selected_sport and minutes:
-                user_weight = st.session_state.get('user_weight', 70.0)
-                result = self.training_controller.add_training(selected_sport, minutes, user_weight)
-                if result['success']:
-                    # Marcar que se mostró el mensaje de éxito
-                    st.session_state['training_success_shown'] = True
-                    
-                    # Limpiar campos del formulario
-                    st.session_state['training_category_index'] = 1  # 'Todas'
-                    st.session_state['training_minutes'] = ''
-                    
-                    # Hacer rerun para limpiar los campos visualmente
-                    st.rerun()
-                else:
-                    st.error(result['message'])
-            else:
-                st.warning("Por favor selecciona un deporte y especifica los minutos")
-        
-        st.divider()
-        st.markdown("**📊 Estadísticas de la Base de Datos:**")
-        total_sports = len(training_service.sports_database)
-        total_categories = len(categories)
-        col1, col2 = st.columns(2)
-        with col1:
-            st.metric("Total Deportes", total_sports)
-        with col2:
-            st.metric("Total Categorías", total_categories)
-    
     def _render_calories_chart(self):
-        """Renderizar gráfica de calorías consumidas vs quemadas"""
+        """Gráfica de calorías"""
         today = date.today()
         today_display = format_date_display(today)
-        if today_display == "hoy":
-            st.subheader(f"📊 Balance Calórico de {today_display}")
-        else:
-            st.subheader(f"📊 Balance Calórico del {today_display}")
+        title = f"📊 Balance Calórico de {today_display}" if today_display == "hoy" else f"📊 Balance Calórico del {today_display}"
+        st.subheader(title)
+        
         today_str = today.strftime('%Y-%m-%d')
+        nutrition_vm = self.nutrition_controller.get_nutrition_stats_viewmodel(today_str)
+        training_vm = self.training_controller.get_training_stats_viewmodel(today_str)
         
-        nutrition_stats = self.nutrition_controller.get_nutrition_stats(today_str)
-        training_stats = self.training_controller.get_training_stats(today_str)
-        
-        if nutrition_stats['success'] and training_stats['success']:
-            calories_consumed = nutrition_stats['data']['calories']
-            calories_burned = training_stats['data']['total_calories_burned']
+        if nutrition_vm['success'] and training_vm['success']:
+            calories_consumed = nutrition_vm['display_data']['calories']
+            calories_burned = training_vm['display_data']['total_calories_burned']
             
-            # Solo mostrar gráfico y balance si hay datos reales (no solo comidas recién añadidas)
             if calories_consumed > 0 or calories_burned > 0:
                 fig = go.Figure(data=[
                     go.Bar(name='Consumidas', x=['Calorías'], y=[calories_consumed], marker_color='#45B7D1'),
@@ -365,9 +399,7 @@ class DashboardView:
                 ])
                 fig.update_layout(
                     title=f"Calorías de {today_display}" if today_display == "hoy" else f"Calorías del {today_display}",
-                    barmode='group',
-                    height=config.CHART_HEIGHT,
-                    showlegend=True
+                    barmode='group', height=config.CHART_HEIGHT, showlegend=True
                 )
                 st.plotly_chart(fig, use_container_width=True)
             else:
@@ -375,335 +407,193 @@ class DashboardView:
         else:
             st.info("No hay datos para mostrar")
     
-    def _render_macros_section(self):
-        """Renderizar sección de macronutrientes"""
-        self._render_macros_chart()
-    
     def _render_daily_stats(self):
-        """Renderizar estadísticas del día"""
-        today = date.today()
-        today_display = format_date_display(today)
-        if today_display == "hoy":
-            st.subheader(f"📈 Estadísticas de {today_display}")
-        else:
-            st.subheader(f"📈 Estadísticas del {today_display}")
-        today_str = today.strftime('%Y-%m-%d')
+        """Estadísticas diarias"""
+        today = date.today().strftime('%Y-%m-%d')
+        nutrition_vm = self.nutrition_controller.get_nutrition_stats_viewmodel(today)
+        training_vm = self.training_controller.get_training_stats_viewmodel(today)
         
-        nutrition_stats = self.nutrition_controller.get_nutrition_stats(today_str)
-        if nutrition_stats['success']:
-            data = nutrition_stats['data']
-            st.metric("Calorías Consumidas", f"{data['calories']} cal")
-            st.metric("Proteínas", f"{data['proteins']:.1f}g")
-            st.metric("Carbohidratos", f"{data['carbs']:.1f}g")
-            st.metric("Grasas", f"{data['fats']:.1f}g")
+        col1, col2 = st.columns(2)
         
-        training_stats = self.training_controller.get_training_stats(today_str)
-        if training_stats['success']:
-            data = training_stats['data']
-            st.metric("Calorías Quemadas", f"{data['total_calories_burned']} cal")
-            st.metric("Minutos Activo", f"{data['total_minutes']} min")
+        with col1:
+            st.markdown("**🍽️ Nutrición del Día**")
+            if nutrition_vm['success']:
+                data = nutrition_vm['display_data']
+                for label, key in [("Calorías Consumidas", "calories_formatted"), ("Proteínas", "proteins_formatted"),
+                                 ("Carbohidratos", "carbs_formatted"), ("Grasas", "fats_formatted")]:
+                    st.metric(label, data[key])
+            else:
+                st.info("No hay datos nutricionales para hoy")
+        
+        with col2:
+            st.markdown("**🏃‍♂️ Entrenamiento del Día**")
+            if training_vm['success']:
+                data = training_vm['display_data']
+                st.metric("Calorías Quemadas", data['calories_formatted'])
+                st.metric("Minutos Activo", data['minutes_formatted'])
+            else:
+                st.info("No hay datos de entrenamiento para hoy")
     
     def _render_recent_records(self):
-        """Renderizar registros con selector de fecha"""
+        """Registros por fecha"""
         st.subheader("📋 Registros por Fecha")
+        
         col1, col2 = st.columns([1, 3])
         with col1:
-            selected_date = st.date_input(
-                "📅 Fecha:",
-                value=date.today(),
-                key="date_selector",
-                format="DD/MM/YYYY",
-                label_visibility="collapsed"
-            )
-        with col2:
-            st.write("")
+            selected_date = st.date_input("📅 Fecha:", value=date.today(), key="date_selector",
+                                        format="DD/MM/YYYY", label_visibility="collapsed")
         
         date_str = selected_date.strftime('%Y-%m-%d')
-        meals_by_date = self.nutrition_controller.get_meals_by_date(date_str)
-        trainings_by_date = self.training_controller.get_trainings_by_date(date_str)
+        meals_data = self.nutrition_controller.get_meals_by_date(date_str)
+        trainings_data = self.training_controller.get_trainings_by_date(date_str)
         
         tab1, tab2, tab3 = st.tabs(["⚖️ Balance", "🍽️ Comidas", "💪 Entrenamientos"])
+        
         with tab1:
             self._render_balance_tab(selected_date)
         with tab2:
-            self._render_meals_table(meals_by_date, selected_date)
+            self._render_table(meals_data, selected_date, 'nutrition')
         with tab3:
-            self._render_trainings_table(trainings_by_date, selected_date)
+            self._render_table(trainings_data, selected_date, 'training')
     
     def _render_balance_tab(self, selected_date):
-        """Renderizar pestaña de balance calórico del día"""
+        """Balance calórico"""
         date_str = selected_date.strftime('%Y-%m-%d')
-        
-        # Obtener estadísticas del día seleccionado
-        nutrition_stats = self.nutrition_controller.get_nutrition_stats(date_str)
-        training_stats = self.training_controller.get_training_stats(date_str)
+        balance_result = self.nutrition_controller.get_calories_balance(date_str)
         
         date_display = format_date_display(selected_date)
-        if date_display == "hoy":
-            st.subheader(f"⚖️ Balance Calórico de {date_display}")
-        else:
-            st.subheader(f"⚖️ Balance Calórico del {date_display}")
+        title = f"⚖️ Balance Calórico de {date_display}" if date_display == "hoy" else f"⚖️ Balance Calórico del {date_display}"
+        st.subheader(title)
         
-        if nutrition_stats['success'] and training_stats['success']:
-            calories_consumed = nutrition_stats['data']['calories']
-            calories_burned = training_stats['data']['total_calories_burned']
-            
-            # Calcular balance
-            balance = calories_consumed - calories_burned
-            
-            # Crear columnas para mostrar la información
+        if balance_result['success']:
+            data = balance_result['data']
             col1, col2, col3 = st.columns(3)
             
-            with col1:
-                st.metric(
-                    "🔥 Calorías Consumidas",
-                    f"{calories_consumed} cal",
-                    help="Total de calorías ingeridas en el día"
-                )
+            metrics = [
+                ("🔥 Calorías Consumidas", f"{data['calories_consumed']} cal", "Total de calorías ingeridas en el día"),
+                ("🏃‍♂️ Calorías Quemadas", f"{data['calories_burned']} cal", "Total de calorías quemadas en entrenamientos"),
+                (f"{data['balance_color']} Balance del Día", data['balance_text'], data['balance_help'])
+            ]
             
-            with col2:
-                st.metric(
-                    "🏃‍♂️ Calorías Quemadas",
-                    f"{calories_burned} cal",
-                    help="Total de calorías quemadas en entrenamientos"
-                )
-            
-            with col3:
-                # Determinar color y símbolo del balance
-                if balance > 0:
-                    balance_color = "🔴"  # Rojo para superávit
-                    balance_text = f"+{balance} cal"
-                    balance_help = "Superávit calórico (ganancia de peso)"
-                elif balance < 0:
-                    balance_color = "🟢"  # Verde para déficit
-                    balance_text = f"{balance} cal"
-                    balance_help = "Déficit calórico (pérdida de peso)"
-                else:
-                    balance_color = "🟡"  # Amarillo para equilibrio
-                    balance_text = "0 cal"
-                    balance_help = "Equilibrio calórico (mantenimiento de peso)"
-                
-                st.metric(
-                    f"{balance_color} Balance del Día",
-                    balance_text,
-                    help=balance_help
-                )
-             
-            # Solo mostrar las métricas principales, sin gráfico ni mensajes adicionales
+            for col, (label, value, help_text) in zip([col1, col2, col3], metrics):
+                with col:
+                    st.metric(label, value, help=help_text)
         else:
             st.warning("📊 No hay suficientes datos para mostrar el balance calórico")
-            if not nutrition_stats['success']:
-                st.info("💡 Añade comidas para ver las calorías consumidas")
-            if not training_stats['success']:
-                st.info("💡 Añade entrenamientos para ver las calorías quemadas")
+            st.info("💡 Añade comidas y entrenamientos para ver el balance calórico")
     
-    def _render_meals_table(self, meals_result, selected_date):
-        """Renderizar tabla de comidas con botones de borrar"""
-        if meals_result['success'] and meals_result['data']:
-            date_display = format_date_display(selected_date)
-            if date_display == "hoy":
-                st.info(f"🍽️ Comidas de {date_display} ({len(meals_result['data'])} registros)")
-            else:
-                st.info(f"🍽️ Comidas del {date_display} ({len(meals_result['data'])} registros)")
-            meals_df = pd.DataFrame(meals_result['data'])
-            meals_display = meals_df[['id', 'food', 'grams', 'calories', 'proteins', 'carbs', 'fats', 'created_at']].copy()
-            meals_display.columns = ['ID', 'Alimento', 'Gramos', 'Calorías', 'Proteínas', 'Carbohidratos', 'Grasas', 'Hora']
-            meals_display['Hora'] = pd.to_datetime(meals_df['created_at']).dt.strftime('%H:%M')
-            
-            for idx, row in meals_df.iterrows():
-                col1, col2 = st.columns([4, 1])
-                with col1:
-                    st.write(f"🍽️ **{row['food']}** - {row['grams']}g - {row['calories']} cal - {row['proteins']}g prot - {pd.to_datetime(row['created_at']).strftime('%H:%M')}")
-                with col2:
-                    if st.button("🗑️", key=f"delete_meal_{row['id']}", help="Borrar comida"):
-                        result = self.nutrition_controller.delete_meal(row['id'])
-                        if result['success']:
-                            st.success("Comida eliminada")
-                            st.rerun()
-                        else:
-                            st.error(result['message'])
-        else:
-            date_display = format_date_display(selected_date)
-            if date_display == "hoy":
-                st.info(f"📭 No hay comidas registradas para {date_display}")
-            else:
-                st.info(f"📭 No hay comidas registradas para el {date_display}")
-    
-    def _render_trainings_table(self, trainings_result, selected_date):
-        """Renderizar tabla de entrenamientos con botones de borrar"""
-        if trainings_result['success'] and trainings_result['data']:
-            date_display = format_date_display(selected_date)
-            if date_display == "hoy":
-                st.info(f"💪 Entrenamientos de {date_display} ({len(trainings_result['data'])} registros)")
-            else:
-                st.info(f"💪 Entrenamientos del {date_display} ({len(trainings_result['data'])} registros)")
-            trainings_df = pd.DataFrame(trainings_result['data'])
-            
-            for idx, row in trainings_df.iterrows():
-                col1, col2 = st.columns([4, 1])
-                with col1:
-                    st.write(f"💪 **{row['activity']}** - {row['minutes']} min - {row['calories_burned']} cal - {pd.to_datetime(row['created_at']).strftime('%H:%M')}")
-                with col2:
-                    if st.button("🗑️", key=f"delete_training_{row['id']}", help="Borrar entrenamiento"):
-                        result = self.training_controller.delete_training(row['id'])
-                        if result['success']:
-                            st.success("Entrenamiento eliminado")
-                            st.rerun()
-                        else:
-                            st.error(result['message'])
-        else:
-            date_display = format_date_display(selected_date)
-            if date_display == "hoy":
-                st.info(f"📭 No hay entrenamientos registrados para {date_display}")
-            else:
-                st.info(f"📭 No hay entrenamientos registrados para el {date_display}")
+    def _render_table(self, data_result, selected_date, table_type):
+        """Renderizar tabla genérica"""
+        controller = self.nutrition_controller if table_type == 'nutrition' else self.training_controller
+        vm_method = 'get_meals_table_viewmodel' if table_type == 'nutrition' else 'get_trainings_table_viewmodel'
+        delete_method = 'delete_meal_with_feedback' if table_type == 'nutrition' else 'delete_training_with_feedback'
+        display_key = 'food_display' if table_type == 'nutrition' else 'display_text'
+        
+        table_vm = getattr(controller, vm_method)(data_result, selected_date)
+        
+        if not table_vm['success']:
+            st.error(table_vm.get('error', f'Error al procesar {table_type}'))
+            return
+        
+        if not table_vm['has_data']:
+            st.info(table_vm['message'])
+            return
+        
+        table_data = table_vm['table_data']
+        st.info(table_data['header_message'])
+        
+        for row_data in table_data['rows']:
+            col1, col2 = st.columns([4, 1])
+            with col1:
+                st.write(f"{row_data[display_key]} - {row_data['time_formatted']}")
+            with col2:
+                if st.button("🗑️", key=row_data['delete_key'], help=f"Borrar {'comida' if table_type == 'nutrition' else 'entrenamiento'}"):
+                    delete_result = getattr(controller, delete_method)(row_data['id'])
+                    
+                    if delete_result['feedback_type'] == 'success':
+                        st.success(delete_result['message'])
+                    else:
+                        st.error(delete_result['message'])
+                    
+                    if delete_result['should_rerun']:
+                        st.rerun()
     
     def _render_macros_chart(self):
-        """Renderizar gráfica de macronutrientes con recomendaciones"""
+        """Gráfica de macronutrientes"""
         st.subheader("🥗 Macronutrientes")
         
-        # Mostrar mensaje de éxito si existe
-        if 'objetivo_updated' in st.session_state and st.session_state.objetivo_updated:
+        # Mensaje de actualización
+        if st.session_state.get('objetivo_updated'):
             st.success("✅ Objetivo actualizado correctamente")
-            # Limpiar del session_state
             del st.session_state.objetivo_updated
         
-        # Obtener objetivo del session_state (ya cargado)
+        # Selector de objetivo
         user_profile = st.session_state.get('user_profile', {})
         saved_objetivo = user_profile.get('objetivo', 'mantener_peso')
         
-        # Selector de objetivo con persistencia en BD
-        objetivo = st.selectbox(
-            "🎯 ¿Cuál es tu objetivo principal?",
-            options=[
-                "mantener_peso",
-                "perdida_grasa",
-                "ganancia_musculo",
-                "resistencia_cardio",
-                "fuerza_maxima"
-            ],
-            index=[
-                "mantener_peso",
-                "perdida_grasa",
-                "ganancia_musculo",
-                "resistencia_cardio",
-                "fuerza_maxima"
-            ].index(saved_objetivo),
-            format_func=lambda x: {
-                "mantener_peso": "⚖️ Mantener peso actual",
-                "perdida_grasa": "🔥 Pérdida de grasa",
-                "ganancia_musculo": "💪 Ganancia de músculo",
-                "resistencia_cardio": "🏃‍♂️ Resistencia y cardio",
-                "fuerza_maxima": "🏋️ Fuerza máxima"
-            }[x],
-            help="Selecciona tu objetivo para ver recomendaciones personalizadas",
-            key="objetivo_selector"
-        )
+        objetivo_options = self.user_controller.get_objetivo_options()
+        if not objetivo_options['success']:
+            st.error("Error al cargar opciones de objetivo")
+            return
         
-        # Guardar el objetivo en la base de datos si cambió
+        options = objetivo_options['data']['options']
+        current_index = options.index(saved_objetivo) if saved_objetivo in options else 0
+        
+        objetivo = st.selectbox("🎯 ¿Cuál es tu objetivo principal?", options=options,
+                              index=current_index, format_func=objetivo_options['data']['format_func'],
+                              help="Selecciona tu objetivo para ver recomendaciones personalizadas",
+                              key="objetivo_selector")
+        
+        # Guardar objetivo si cambió
         if objetivo != saved_objetivo:
-            # Usar perfil del session_state (ya cargado)
             current_data = st.session_state.get('user_profile', {})
-            # Mantener los datos existentes y añadir/actualizar el objetivo
             result = self.user_controller.save_profile(
-                current_data.get('name', ''),
-                current_data.get('weight', 70.0),
-                objetivo
-            )
+                current_data.get('name', ''), current_data.get('weight', 70.0), objetivo)
+            
             if result['success']:
-                # Actualizar el perfil en session_state
                 st.session_state['user_profile']['objetivo'] = objetivo
-                # Guardar mensaje en session_state para mostrarlo en el siguiente render
                 st.session_state.objetivo_updated = True
                 st.rerun()
             else:
                 st.error(f"❌ Error al guardar objetivo: {result['message']}")
         
+        # Gráficas
         today = date.today().strftime('%Y-%m-%d')
-        nutrition_stats = self.nutrition_controller.get_nutrition_stats(today)
+        nutrition_vm = self.nutrition_controller.get_nutrition_stats_viewmodel(today)
+        
         col1, col2 = st.columns(2)
         
         with col1:
             st.markdown("**📊 Distribución Actual**")
-            if nutrition_stats['success']:
-                data = nutrition_stats['data']
-                fig_actual = go.Figure(data=[go.Pie(
+            if nutrition_vm['success']:
+                data = nutrition_vm['display_data']
+                fig = go.Figure(data=[go.Pie(
                     labels=['Proteínas', 'Carbohidratos', 'Grasas'],
                     values=[data['proteins'], data['carbs'], data['fats']],
-                    hole=0.4,
-                    marker_colors=['#FF6B6B', '#FFD93D', '#45B7D1'],
-                    textinfo='percent',
-                    textposition='outside'
+                    hole=0.4, marker_colors=['#FF6B6B', '#FFD93D', '#45B7D1'],
+                    textinfo='percent', textposition='outside'
                 )])
-                fig_actual.update_layout(
-                    title=f"Consumido el {format_date(date.today())}",
-                    height=300,
-                    showlegend=True
-                )
-                st.plotly_chart(fig_actual, use_container_width=True)
+                fig.update_layout(title=f"Consumido el {format_date(date.today())}", 
+                                height=300, showlegend=True)
+                st.plotly_chart(fig, use_container_width=True)
             else:
                 st.info(f"No hay datos nutricionales para el {format_date(date.today())}")
         
         with col2:
             st.markdown("**🎯 Distribución Recomendada**")
-            recomendacion = self._get_macro_recommendation(objetivo)
-            
-            # Crear gráfica de dona para recomendaciones con rangos exactos
-            # Usar valores que suman 100% para que el gráfico se vea completo
-            fig_recomendado = go.Figure(data=[go.Pie(
-                labels=[
-                    recomendacion["protein"],
-                    recomendacion["carbs"],
-                    recomendacion["fat"]
-                ],
-                values=[25, 50, 25],  # Valores fijos que suman 100% para mostrar distribución visual correcta
-                hole=0.4,
-                marker_colors=['#FF6B6B', '#FFD93D', '#45B7D1'],
-                textinfo='percent',  # Mostrar porcentajes en lugar de nombres
-                textposition='outside'
-            )])
-            
-            fig_recomendado.update_layout(
-                title=f"Recomendado: {recomendacion['nombre']}",
-                height=300,
-                showlegend=False  # Ocultar leyenda para evitar duplicación
-            )
-            
-            st.plotly_chart(fig_recomendado, use_container_width=True)
-    
-    def _get_macro_recommendation(self, objetivo):
-        """Obtener recomendaciones de macronutrientes según el objetivo"""
-        recomendaciones = {
-            "mantener_peso": {
-                "nombre": "Mantener Peso",
-                "protein": "15-25%",
-                "carbs": "45-55%",
-                "fat": "25-35%"
-            },
-            "perdida_grasa": {
-                "nombre": "Pérdida de Grasa",
-                "protein": "25-35%",
-                "carbs": "30-40%",
-                "fat": "25-30%"
-            },
-            "ganancia_musculo": {
-                "nombre": "Ganancia de Músculo",
-                "protein": "20-30%",
-                "carbs": "45-55%",
-                "fat": "20-30%"
-            },
-            "resistencia_cardio": {
-                "nombre": "Resistencia y Cardio",
-                "protein": "15-20%",
-                "carbs": "55-65%",
-                "fat": "20-25%"
-            },
-            "fuerza_maxima": {
-                "nombre": "Fuerza Máxima",
-                "protein": "25-30%",
-                "carbs": "40-50%",
-                "fat": "20-30%"
-            }
-        }
-        return recomendaciones.get(objetivo, recomendaciones["mantener_peso"])
-
+            recomendacion_vm = self.nutrition_controller.get_macro_recommendations_viewmodel(objetivo)
+            if recomendacion_vm['success']:
+                chart_data = recomendacion_vm['chart_data']
+                
+                fig = go.Figure(data=[go.Pie(
+                    labels=chart_data['labels'],
+                    values=chart_data['values'], 
+                    hole=0.4,
+                    marker_colors=chart_data['colors'],
+                    textinfo='label', textposition='outside'
+                )])
+                fig.update_layout(title=chart_data['title'], 
+                                height=300, showlegend=False)
+                st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.error(recomendacion_vm.get('error', 'Error al obtener recomendaciones de macronutrientes'))

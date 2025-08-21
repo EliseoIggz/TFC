@@ -21,7 +21,7 @@ class TranslationService:
         if self.api_key:
             # Configurar el cliente OpenAI con la nueva sintaxis
             self.client = openai.OpenAI(api_key=self.api_key)
-            # logger.info("Servicio de traducción OpenAI inicializado")
+
         else:
             logger.warning("OpenAI API key no configurada - traducción deshabilitada")
     
@@ -36,7 +36,7 @@ class TranslationService:
                 logger.warning("Texto vacío para traducir")
                 return None
             
-            logger.info(f"Traduciendo a inglés con OpenAI: '{spanish_text}'")
+
             
             response = self.client.chat.completions.create(
                 model=self.model,
@@ -57,7 +57,7 @@ class TranslationService:
             translated_text = response.choices[0].message.content.strip()
             
             if translated_text:
-                logger.info(f"Traducción exitosa: '{spanish_text}' → '{translated_text}'")
+
                 return translated_text
             else:
                 logger.warning("Respuesta vacía de OpenAI")
@@ -87,7 +87,7 @@ class TranslationService:
                 logger.warning("Texto vacío para traducir")
                 return None
             
-            logger.info(f"Traduciendo a español con OpenAI: '{english_text}'")
+
             
             response = self.client.chat.completions.create(
                 model=self.model,
@@ -108,7 +108,7 @@ class TranslationService:
             translated_text = response.choices[0].message.content.strip()
             
             if translated_text:
-                logger.info(f"Traducción exitosa: '{english_text}' → '{translated_text}'")
+
                 return translated_text
             else:
                 logger.warning("Respuesta vacía de OpenAI")

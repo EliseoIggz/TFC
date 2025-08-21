@@ -74,9 +74,7 @@ def test_usda_nutrition_api():
                 print(f"   Carbohidratos: {nutrition_info['carbs']}g")
                 print(f"   Grasas: {nutrition_info['fats']}g")
                 print(f"   Producto: {nutrition_info['product_name']}")
-                print(f"   Marca: {nutrition_info['brand']}")
                 print(f"   FDC ID: {nutrition_info['fdc_id']}")
-                print(f"   Tipo: {nutrition_info['data_type']}")
         except Exception as e:
             print(f"❌ Error obteniendo nutrición: {e}")
     
@@ -105,10 +103,7 @@ def test_usda_nutrition_api():
         if food_info:
             print(f"✅ Alimento encontrado:")
             print(f"   Nombre: {food_info['name']}")
-            print(f"   Marca: {food_info['brand']}")
             print(f"   FDC ID: {food_info['fdc_id']}")
-            print(f"   Tipo: {food_info['data_type']}")
-            print(f"   Categoría: {food_info['category']}")
         else:
             print(f"⚠️  Alimento no encontrado para el FDC ID: {test_fdc_id}")
     except Exception as e:

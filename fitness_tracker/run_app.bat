@@ -39,18 +39,41 @@ echo Python encontrado
 python --version
 
 :: Verificar si el entorno virtual existe
-if not exist "venv\" (
+if exist "venv\" (
+    echo Entorno virtual encontrado
+    echo Verificando si esta corrupto...
+    
+    :: Verificar si el entorno virtual funciona correctamente
+    call venv\Scripts\activate >nul 2>&1
+    if errorlevel 1 (
+        echo El entorno virtual parece estar corrupto.
+        echo Eliminando y recreando...
+        rmdir /s /q "venv" 2>nul
+        if exist "venv\" (
+            echo Error: No se pudo eliminar el directorio venv
+            echo Por favor, elimina manualmente la carpeta 'venv' y ejecuta el script nuevamente
+            pause
+            exit /b 1
+        )
+        goto :create_venv
+    )
+) else (
+    :create_venv
     echo.
     echo Creando entorno virtual...
     python -m venv venv
     if errorlevel 1 (
-        echo  Error al crear el entorno virtual
+        echo Error al crear el entorno virtual
+        echo.
+        echo Posibles soluciones:
+        echo 1. Ejecuta este script como administrador
+        echo 2. Verifica que no haya otros procesos usando Python
+        echo 3. Elimina manualmente la carpeta 'venv' si existe
+        echo.
         pause
         exit /b 1
     )
-    echo Entorno virtual creado
-) else (
-    echo Entorno virtual encontrado
+    echo Entorno virtual creado correctamente
 )
 
 :: Activar entorno virtual
