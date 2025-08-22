@@ -97,17 +97,28 @@ fitness_tracker/
 
 ## Testing
 
-### Ejecutar Pruebas
+### Ejecutar Pruebas (Windows)
+**Opción 1 - Automático (Recomendado):**
 ```bash
-cd fitness_tracker
-python -m pytest tests/
+# Solo ejecutar este comando:
+run_tests.bat
 ```
 
-### Pruebas Específicas
-- `test_expanded_sports.py` - Base de deportes
-- `test_usda_nutrition.py` - Sistema de nutrición
-- `test_openai_integration.py` - Integración OpenAI
-- `test_training.py` - Funcionalidades básicas
+**Opción 2 - Manual:**
+```bash
+# Activar entorno virtual
+venv\Scripts\activate
+
+# Ejecutar tests individuales
+python tests/test_translation_service.py
+python tests/test_sports_database.py
+python tests/test_usda_search.py
+```
+
+### Tests Disponibles
+- **`test_translation_service.py`** - 🔤 OpenAI y traducciones español ↔ inglés ✅
+- **`test_sports_database.py`** - 🏃‍♂️ Base de datos de 135 deportes y cálculos MET ✅
+- **`test_usda_search.py`** - 🔍 Filtros inteligentes USDA (Foundation + Legacy) ✅
 
 ## Escalabilidad
 

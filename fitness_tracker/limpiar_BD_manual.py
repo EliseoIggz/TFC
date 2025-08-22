@@ -6,6 +6,8 @@ Permite limpieza parcial (solo registros) o completa (todo)
 
 import sys
 import os
+
+# Añadir el directorio actual al path para poder importar desde el directorio raíz
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from models.database import Database
