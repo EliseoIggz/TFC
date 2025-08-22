@@ -6,6 +6,7 @@ from controllers.training_controller import TrainingController
 from controllers.nutrition_controller import NutritionController
 from controllers.user_controller import UserController
 from controllers.statistics_controller import StatisticsController
+from controllers.dashboard_controller import DashboardController
 import config
 from utils.helpers import format_date, format_date_display, show_success_message
 
@@ -21,6 +22,7 @@ class DashboardView:
             nutrition_controller=self.nutrition_controller,
             training_controller=self.training_controller
         )
+        self.dashboard_controller = DashboardController()
         
         st.set_page_config(
             page_title="Limen - Fitness Tracker",
@@ -71,6 +73,11 @@ class DashboardView:
     def _render_profile_form(self):
         """Renderizar formulario de perfil"""
         st.header("👤 Mi Perfil")
+        
+        # MOSTRAR TOAST DE COMIDA PENDIENTE EN SIDEBAR
+        if st.session_state.get('pending_food_toast'):
+            st.toast(st.session_state['pending_food_toast'])
+            del st.session_state['pending_food_toast']
         
         # Inputs de perfil
         user_name = st.text_input("Nombre:", value=st.session_state.get('user_name', ''), 
@@ -212,7 +219,9 @@ class DashboardView:
         result = self.nutrition_controller.get_food_selection_result(options_data, selected_index)
         
         if result['success']:
-            show_success_message(result['message'])
+            # GUARDAR MENSAJE PARA MOSTRAR EN SIDEBAR DESPUÉS DEL RERUN
+            st.session_state['pending_food_toast'] = result['message']
+            
             if result.get('should_clear_selector'):
                 self._clear_food_selection()
             st.session_state.update({
@@ -250,8 +259,9 @@ class DashboardView:
         
         form_data = initial_vm['form_data']
         
-        # Generar claves únicas para forzar recreación de widgets
-        form_counter = st.session_state.get('training_form_counter', 0)
+        # Obtener estado del formulario usando el controlador
+        form_state = self.dashboard_controller.get_training_form_state()
+        form_counter = form_state['form_counter']
         
         # 1. Categoría
         categories = form_data['categories']
@@ -313,9 +323,12 @@ class DashboardView:
         """Validación y envío de entrenamiento"""
         validation = form_data['validation']
         
+        # Obtener estado de validación usando el controlador
+        validation_status = self.dashboard_controller.get_form_validation_status(validation)
+        
         # Mostrar errores
-        if validation['show_error']:
-            st.error(validation['error_message'])
+        if validation_status['has_errors']:
+            st.error(validation_status['error_message'])
         
         # Mostrar mensaje de éxito
         if st.session_state.get('training_success_message'):
@@ -323,7 +336,7 @@ class DashboardView:
             del st.session_state['training_success_message']
         
         # Preview (solo mostrar si no hay mensaje de éxito)
-        if form_data['preview'] and not st.session_state.get('training_success_message'):
+        if self.dashboard_controller.should_show_preview(form_data):
             preview = form_data['preview']
             st.info(preview['display_text'])
             st.info(preview['calories_text'])
@@ -340,18 +353,18 @@ class DashboardView:
                     if result['success']:
                         st.session_state['training_success_message'] = result['message']
                         
-                        # Incrementar contador para forzar recreación de widgets
-                        st.session_state.training_form_counter = st.session_state.get('training_form_counter', 0) + 1
+                        # Resetear formulario usando el controlador
+                        self.dashboard_controller.reset_training_form()
                         
                         if result.get('should_rerun'):
                             st.rerun()
                     else:
                         st.error(result['message'])
                 else:
-                    if not selected_sport:
-                        st.warning("❌ Por favor selecciona un deporte")
-                    if not validation['minutes']:
-                        st.warning("❌ Por favor especifica una cantidad válida de minutos")
+                    # Validar inputs usando el controlador
+                    validation_errors = self.dashboard_controller.validate_form_inputs(selected_sport, validation['minutes'])
+                    for error in validation_errors:
+                        st.warning(error)
         
         with col2:
             if st.button("🧹 Limpiar", help="Limpiar selectores y mensajes"):
@@ -359,8 +372,8 @@ class DashboardView:
                 if 'training_success_message' in st.session_state:
                     del st.session_state['training_success_message']
                 
-                # Incrementar contador para forzar recreación de widgets
-                st.session_state.training_form_counter = st.session_state.get('training_form_counter', 0) + 1
+                # Resetear formulario usando el controlador
+                self.dashboard_controller.reset_training_form()
                 
                 # Forzar rerun para limpiar la interfaz
                 st.rerun()
