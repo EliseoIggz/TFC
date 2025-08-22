@@ -63,6 +63,19 @@ fitness_tracker/
 - `get_profile_display_data(profile)`: Prepara datos del perfil para mostrar en la vista
 - `get_objetivo_options()`: Obtiene opciones de objetivo formateadas
 
+#### DashboardController
+**Propósito**: Maneja la lógica del dashboard y formularios.
+
+**Métodos principales**:
+- `get_training_form_state()`: Obtiene estado actual del formulario de entrenamiento
+- `reset_training_form()`: Resetea el formulario de entrenamiento incrementando el counter
+- `validate_form_inputs(selected_sport, minutes_input)`: Valida inputs del formulario
+- `get_form_validation_status(validation_data)`: Procesa estado de validación del formulario
+- `init_user_profile(user_controller)`: Inicializa perfil de usuario
+- `get_sport_selector_data(sports_data, selected_category)`: Obtiene datos del selector de deportes
+- `set_training_toast(message)`: Guarda mensaje para toast de entrenamiento
+- `get_training_toast()`: Obtiene y limpia toast de entrenamiento
+
 ### 2. SERVICIOS (Services)
 
 #### TrainingService

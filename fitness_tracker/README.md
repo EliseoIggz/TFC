@@ -7,9 +7,11 @@ Aplicación Python moderna para registrar y analizar actividad física y aliment
 ## Características Principales
 
 - **Registro de Comidas**: Búsqueda inteligente con traducción automática español-inglés usando OpenAI GPT
-- **Seguimiento de Entrenamientos**: 135 deportes organizados en 19 categorías con cálculo automático de calorías basandose en los valores MET (Metabolic Equivalent of Task)
+- **Seguimiento de Entrenamientos**: 135 deportes organizados en 19 categorías con cálculo automático de calorías basándose en los valores MET (Metabolic Equivalent of Task)
 - **Dashboard Interactivo**: Gráficas y estadísticas en tiempo real con base de datos local
 - **Funcionalidad Offline**: Deportes y cálculos disponibles sin conexión a internet
+- **Sistema de Toast Inteligente**: Notificaciones automáticas en sidebar para comidas y entrenamientos
+- **Reset Automático de Formularios**: Los desplegables se limpian automáticamente después de añadir registros
 
 ## Sistema de Nutrición
 
@@ -45,10 +47,12 @@ Aplicación Python moderna para registrar y analizar actividad física y aliment
 Ver `INSTALACION.md` para pasos detallados.
 
 ### Uso Básico
-1. **Perfil**: Configura nombre, peso y objetivo(en dashboard)
+1. **Perfil**: Configura nombre, peso y objetivo (en dashboard)
 2. **Comidas**: Busca alimentos en español, selecciona opción, especifica gramos
 3. **Entrenamientos**: Elige categoría, deporte, duración y confirma
 4. **Dashboard**: Visualiza balance calórico, macronutrientes y estadísticas
+5. **Notificaciones**: Los toasts aparecen automáticamente en el sidebar
+6. **Formularios**: Se limpian automáticamente después de cada registro
 
 ## Arquitectura del Proyecto
 
@@ -127,6 +131,6 @@ python -m pytest tests/
 ### Desarrollo Local
 1. Clona el repositorio
 2. `python -m venv venv`
-3. `venv\Scripts\activate` (Windows) / `source venv/bin/activate` (Linux/Mac)
+3. `venv\Scripts\activate` (Windows)
 4. `pip install -r requirements.txt`
 5. `streamlit run app.py`

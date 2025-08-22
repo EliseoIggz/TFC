@@ -38,13 +38,12 @@ def format_date_display(date_obj):
             return date_obj.strftime('%d/%m/%Y')
     return str(date_obj)
 
-def show_success_message(message: str, auto_hide: bool = True):
+def show_success_message(message: str):
     """
     Mostrar mensaje de éxito de forma simple
     
     Args:
         message: Mensaje a mostrar
-        auto_hide: Parámetro mantenido por compatibilidad (no se usa)
     """
     st.success(message)
 
