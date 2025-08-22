@@ -42,6 +42,63 @@ class DashboardController:
             'error_message': validation_data.get('error_message', ''),
             'is_valid': validation_data.get('is_valid', False)
         }
+    
+    def init_user_profile(self, user_controller):
+        """Inicializar perfil de usuario"""
+        if 'user_profile' not in st.session_state:
+            profile = user_controller.get_profile()
+            if profile['success']:
+                data = profile['data']
+                st.session_state.update({
+                    'user_profile': data,
+                    'user_name': data['name'],
+                    'user_weight': data['weight']
+                })
+            else:
+                st.session_state.update({
+                    'user_profile': {'name': '', 'weight': 70.0, 'objetivo': 'mantener_peso'},
+                    'user_name': '',
+                    'user_weight': 70.0
+                })
+    
+    def get_sport_selector_data(self, sports_data, selected_category):
+        """Obtener datos del selector de deportes"""
+        all_sports = sports_data['all_sports']
+        
+        # Si la categoría es "Todas", mostrar todos los deportes
+        if selected_category == 'Todas':
+            available_sports = all_sports
+        else:
+            # Filtrar por categoría específica
+            available_sports = [s for s in all_sports if s['category'] == selected_category]
+        
+        if not available_sports:
+            return {
+                'has_sports': False,
+                'warning_message': "No hay deportes disponibles en esta categoría"
+            }
+        
+        sport_options = {sport['name']: sport['key'] for sport in available_sports}
+        sport_options_list = [''] + list(sport_options.keys())
+        
+        return {
+            'has_sports': True,
+            'available_sports': available_sports,
+            'sport_options': sport_options,
+            'sport_options_list': sport_options_list
+        }
+    
+    def set_training_toast(self, message):
+        """Guardar mensaje de toast para entrenamiento"""
+        st.session_state['pending_training_toast'] = message
+    
+    def get_training_toast(self):
+        """Obtener y limpiar toast de entrenamiento"""
+        if st.session_state.get('pending_training_toast'):
+            message = st.session_state['pending_training_toast']
+            del st.session_state['pending_training_toast']
+            return message
+        return None
 
 
 

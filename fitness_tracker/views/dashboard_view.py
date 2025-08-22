@@ -54,21 +54,7 @@ class DashboardView:
     
     def _init_user_profile(self):
         """Inicializar perfil de usuario"""
-        if 'user_profile' not in st.session_state:
-            profile = self.user_controller.get_profile()
-            if profile['success']:
-                data = profile['data']
-                st.session_state.update({
-                    'user_profile': data,
-                    'user_name': data['name'],
-                    'user_weight': data['weight']
-                })
-            else:
-                st.session_state.update({
-                    'user_profile': {'name': '', 'weight': 70.0, 'objetivo': 'mantener_peso'},
-                    'user_name': '',
-                    'user_weight': 70.0
-                })
+        self.dashboard_controller.init_user_profile(self.user_controller)
     
     def _render_profile_form(self):
         """Renderizar formulario de perfil"""
@@ -78,6 +64,11 @@ class DashboardView:
         if st.session_state.get('pending_food_toast'):
             st.toast(st.session_state['pending_food_toast'])
             del st.session_state['pending_food_toast']
+        
+        # MOSTRAR TOAST DE ENTRENAMIENTO PENDIENTE EN SIDEBAR
+        training_toast = self.dashboard_controller.get_training_toast()
+        if training_toast:
+            st.toast(training_toast)
         
         # Inputs de perfil
         user_name = st.text_input("Nombre:", value=st.session_state.get('user_name', ''), 
@@ -292,30 +283,20 @@ class DashboardView:
     
     def _render_sport_selector(self, sports_data, selected_category, form_counter=0):
         """Renderizar selector de deportes"""
-        # SIEMPRE mostrar el selector de deportes
-        all_sports = sports_data['all_sports']
+        # Obtener datos del selector usando el controlador
+        selector_data = self.dashboard_controller.get_sport_selector_data(sports_data, selected_category)
         
-        # Si la categoría es "Todas", mostrar todos los deportes
-        if selected_category == 'Todas':
-            available_sports = all_sports
-        else:
-            # Filtrar por categoría específica
-            available_sports = [s for s in all_sports if s['category'] == selected_category]
-        
-        if not available_sports:
-            st.warning("No hay deportes disponibles en esta categoría")
+        if not selector_data['has_sports']:
+            st.warning(selector_data['warning_message'])
             return ""
         
-        sport_options = {sport['name']: sport['key'] for sport in available_sports}
-        sport_options_list = [''] + list(sport_options.keys())
-        
         selected_sport_key = st.selectbox("🏃‍♂️ Selecciona el Deporte:",
-                                        options=sport_options_list,
+                                        options=selector_data['sport_options_list'],
                                         format_func=lambda x: "Escoge un deporte" if x == '' else x,
                                         help="Selecciona el deporte que realizaste",
                                         key=f"training_sport_selector_{form_counter}")
         
-        return sport_options.get(selected_sport_key, "")
+        return selector_data['sport_options'].get(selected_sport_key, "")
     
     
     
@@ -330,28 +311,23 @@ class DashboardView:
         if validation_status['has_errors']:
             st.error(validation_status['error_message'])
         
-        # Mostrar mensaje de éxito
-        if st.session_state.get('training_success_message'):
-            show_success_message(st.session_state['training_success_message'])
-            del st.session_state['training_success_message']
+        # Mensaje de éxito ahora se muestra como toast en sidebar
         
-        # Preview (solo mostrar si no hay mensaje de éxito)
-        if self.dashboard_controller.should_show_preview(form_data):
+        # Preview del entrenamiento
+        if form_data.get('preview'):
             preview = form_data['preview']
             st.info(preview['display_text'])
             st.info(preview['calories_text'])
         
-        # Botones de acción
-        col1, col2 = st.columns([3, 1])
-        
-        with col1:
-            if st.button("🏃‍♂️ Añadir Entrenamiento", type="primary"):
+        # Botón de acción
+        if st.button("🏃‍♂️ Añadir Entrenamiento", type="primary"):
                 if validation['is_valid']:
                     result = self.training_controller.get_training_form_submission_result(
                         selected_sport, validation['minutes'], user_weight)
                     
                     if result['success']:
-                        st.session_state['training_success_message'] = result['message']
+                        # Guardar mensaje para toast en sidebar
+                        self.dashboard_controller.set_training_toast(result['message'])
                         
                         # Resetear formulario usando el controlador
                         self.dashboard_controller.reset_training_form()
@@ -366,17 +342,8 @@ class DashboardView:
                     for error in validation_errors:
                         st.warning(error)
         
-        with col2:
-            if st.button("🧹 Limpiar", help="Limpiar selectores y mensajes"):
-                # Limpiar mensaje de éxito
-                if 'training_success_message' in st.session_state:
-                    del st.session_state['training_success_message']
-                
-                # Resetear formulario usando el controlador
-                self.dashboard_controller.reset_training_form()
-                
-                # Forzar rerun para limpiar la interfaz
-                st.rerun()
+        # Botón Limpiar eliminado - Los desplegables se resetean automáticamente
+        # al añadir un entrenamiento gracias al training_form_counter
         
 
     
