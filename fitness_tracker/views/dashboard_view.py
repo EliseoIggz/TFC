@@ -24,7 +24,7 @@ class DashboardView:
         
         st.set_page_config(
             page_title="Limen - Fitness Tracker",
-            page_icon="assets/images/favicon.ico",
+            page_icon="./assets/images/logo_sharp.png",
             layout=config.STREAMLIT_LAYOUT,
             initial_sidebar_state=config.STREAMLIT_SIDEBAR_STATE
         )
@@ -32,24 +32,15 @@ class DashboardView:
     def render(self):
         """Renderizar dashboard completo"""
         self._init_user_profile()
-        self._render_header()
         
         with st.sidebar:
-            # TÍTULO "LIMEN" CON FUENTE CASLON ANTIQUE
+            # Logo y título "LIMEN" uno al lado del otro, pegados al borde izquierdo
             st.markdown("""
-            <div style="text-align: center; margin-bottom: 20px;">
-                <h1 style="font-family: 'Caslon Antique', serif; font-size: 2.5rem; color: white; margin: 0; padding: 0;">
-                    Limen
-                </h1>
+            <div style="display: flex; align-items: center; margin-bottom: 20px; margin-left: 0;">
+                <img src="data:image/png;base64,{}" width="80" style="margin-right: 15px;">
+                <img src="data:image/png;base64,{}" width="120" style="margin: 0;">
             </div>
-            """, unsafe_allow_html=True)
-            
-            # Logo centrado en la parte superior del sidebar (AUMENTADO)
-            st.markdown("""
-            <div style="text-align: center; margin-bottom: 20px;">
-                <img src="data:image/png;base64,{}" width="120" style="margin: 0 auto;">
-            </div>
-            """.format(self._get_image_base64("assets/images/logo_sharp.png")), unsafe_allow_html=True)
+            """.format(self._get_image_base64("assets/images/logo_sharp.png"), self._get_image_base64("assets/images/title.png")), unsafe_allow_html=True)
             
             self._render_profile_form()
             self._render_input_forms()
@@ -77,28 +68,9 @@ class DashboardView:
                     'user_weight': 70.0
                 })
     
-    def _render_header(self):
-        """Renderizar cabecera con datos del usuario"""
-        profile_display = self.user_controller.get_profile_display_data(st.session_state['user_profile'])
-        if profile_display['success'] and profile_display['data']['name']:
-            data = profile_display['data']
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.metric("👤 Usuario", data['name'])
-            with col2:
-                st.metric("⚖️ Peso", data['weight_formatted'])
-            st.divider()
-        elif not profile_display['success']:
-            st.error("Error al cargar datos del perfil")
-    
     def _render_profile_form(self):
         """Renderizar formulario de perfil"""
         st.header("👤 Mi Perfil")
-        
-        # Mostrar mensaje de actualización
-        if st.session_state.get('profile_updated'):
-            show_success_message("Perfil actualizado")
-            del st.session_state.profile_updated
         
         # Inputs de perfil
         user_name = st.text_input("Nombre:", value=st.session_state.get('user_name', ''), 
@@ -118,8 +90,7 @@ class DashboardView:
                 if result['success']:
                     st.session_state.update({
                         'user_name': user_name,
-                        'user_weight': user_weight,
-                        'profile_updated': True
+                        'user_weight': user_weight
                     })
                     st.rerun()
                 else:
@@ -127,10 +98,8 @@ class DashboardView:
             else:
                 st.error(validation['error'])
         
-        # Mostrar saludo
-        if user_name:
-            show_success_message(f"¡Hola {user_name}!")
-            st.info(f"Tu peso: {st.session_state.get('user_weight', 70.0)} kg")
+        # Mostrar toast solo para el dato que cambió
+        self._show_profile_change_toasts(user_name)
     
     def _render_input_forms(self):
         """Renderizar formularios de entrada"""
@@ -617,3 +586,26 @@ class DashboardView:
                 return base64.b64encode(image_file.read()).decode()
         except Exception:
             return ""
+    
+    def _show_profile_change_toasts(self, user_name):
+        """Mostrar toasts SOLO cuando realmente cambien los datos"""
+        if not user_name:
+            return
+            
+        current_weight = st.session_state.get('user_weight', 70.0)
+        
+        # Obtener valores anteriores guardados en session_state
+        previous_name = st.session_state.get('previous_user_name')
+        previous_weight = st.session_state.get('previous_user_weight')
+        
+        # Solo mostrar toasts si hay valores anteriores Y son diferentes
+        # (No mostrar en primera carga ni en renders normales)
+        if previous_name is not None and previous_name != user_name:
+            st.toast(f"¡Hola {user_name}!")
+        
+        if previous_weight is not None and previous_weight != current_weight:
+            st.toast(f"Peso actualizado a {current_weight} kg")
+        
+        # Actualizar valores anteriores para la próxima comparación
+        st.session_state['previous_user_name'] = user_name
+        st.session_state['previous_user_weight'] = current_weight
