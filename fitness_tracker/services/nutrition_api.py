@@ -1,14 +1,9 @@
-# Limen - API de Nutrición USDA FoodData Central
-# ========================================================
-# Este archivo integra la API oficial de USDA para obtener información nutricional precisa
-
 import requests
 import config
 import logging
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional
 from .translation_service import TranslationService
 
-# Configurar logging
 logger = logging.getLogger(__name__)
 
 class NutritionService:
@@ -79,7 +74,7 @@ class NutritionService:
             return None
     
     def search_foods(self, query: str, page_size: int = 25) -> Optional[Dict]:
-        """Buscar alimentos en la base de datos de USDA"""
+        """Buscar alimentos en la base de datos de USDA con estrategia híbrida"""
         try:
             # FLUJO SIMPLE: Español → Inglés → Buscar en USDA
             english_query = query
@@ -93,12 +88,11 @@ class NutritionService:
                 except Exception as e:
                     logger.warning(f"Error en traducción de consulta: {e}")
             
-            # 2. Buscar en USDA usando la consulta en inglés
-            
+            # 2. PRIMERA BÚSQUEDA: Solo Foundation (calidad máxima) (Foundation = Materias primas)
             params = {
                 'query': english_query,
-                'pageSize': page_size,
-                'dataType': ['Foundation', 'SR Legacy', 'Survey (FNDDS)'],
+                'pageSize': min(page_size * 3, 75),  # Muchos más resultados
+                'dataType': ['Foundation'],  # Solo Foundation para calidad
                 'sortBy': 'dataType.keyword',
                 'sortOrder': 'asc'
             }
@@ -106,7 +100,39 @@ class NutritionService:
             response = self._make_api_request('foods/search', params)
             
             if response and 'foods' in response and response['foods']:
-                return response
+                foods = response['foods']
+                sorted_foods = self._sort_foods_by_calories(foods)
+                
+                # Si hay suficientes resultados (≥5), devolver solo Foundation
+                if len(sorted_foods) >= 5:
+                    return {'foods': sorted_foods}
+                
+                # Si hay menos de 5 resultados, expandir a Legacy
+                logger.info(f"Solo {len(sorted_foods)} resultados en Foundation, expandiendo a Legacy...")
+                
+                # 3. SEGUNDA BÚSQUEDA: Incluir Legacy para más opciones (Legacy = Productos antiguos)
+                params_legacy = {
+                    'query': english_query,
+                    'pageSize': min(page_size * 2, 50),  # Resultados moderados
+                    'dataType': ['Foundation', 'SR Legacy'],  # Foundation + Legacy
+                    'sortBy': 'dataType.keyword',
+                    'sortOrder': 'asc'
+                }
+                
+                response_legacy = self._make_api_request('foods/search', params_legacy)
+                
+                if response_legacy and 'foods' in response_legacy and response_legacy['foods']:
+                    # Combinar y ordenar todos los resultados
+                    all_foods = foods + response_legacy['foods']
+                    # Eliminar duplicados por FDC ID
+                    unique_foods = {food['fdcId']: food for food in all_foods}.values()
+                    sorted_foods_combined = self._sort_foods_by_calories(list(unique_foods))
+                    
+                    logger.info(f"Expandido a {len(sorted_foods_combined)} resultados (Foundation + Legacy)")
+                    return {'foods': sorted_foods_combined}
+                
+                # Si no hay resultados con Legacy, devolver solo Foundation
+                return {'foods': sorted_foods}
             else:
                 logger.warning(f"No se encontraron resultados para '{english_query}'")
                 return None
@@ -114,6 +140,37 @@ class NutritionService:
         except Exception as e:
             logger.error(f"Error buscando alimentos: {e}")
             return None
+    
+    def _sort_foods_by_calories(self, foods: List[Dict]) -> List[Dict]:
+        """Ordenar alimentos por calorías (menor a mayor) y filtrar los que no tienen calorías"""
+        try:
+            def get_calories(food):
+                # Buscar calorías en los nutrientes del alimento
+                food_nutrients = food.get('foodNutrients', [])
+                for nutrient in food_nutrients:
+                    nutrient_name = nutrient.get('nutrientName', '')
+                    if 'Energy' in nutrient_name or 'Calories' in nutrient_name:
+                        return nutrient.get('value', 0)
+                return 0  # Si no se encuentran calorías
+            
+            # Filtrar alimentos con calorías válidas (> 0)
+            valid_foods = []
+            for food in foods:
+                calories = get_calories(food)
+                if calories > 0:
+                    valid_foods.append(food)
+                else:
+                    logger.debug(f"Filtrado alimento sin calorías: {food.get('description', 'Sin descripción')}")
+            
+            # Ordenar por calorías (menor a mayor)
+            sorted_foods = sorted(valid_foods, key=get_calories)
+            
+            logger.info(f"Filtrados {len(foods) - len(valid_foods)} alimentos sin calorías. Quedan {len(sorted_foods)} alimentos válidos.")
+            return sorted_foods
+            
+        except Exception as e:
+            logger.error(f"Error ordenando por calorías: {e}")
+            return foods  # Devolver sin ordenar si hay error
     
 
     def get_food_details(self, fdc_id: int) -> Optional[Dict]:
@@ -165,16 +222,54 @@ class NutritionService:
             raise ValueError(f"Error conectando con la base de datos de USDA: {str(e)}")
     
     def _show_food_options(self, foods: List[Dict], search_term: str, grams: float) -> Dict:
-        """Mostrar opciones de alimentos para que el usuario elija"""
+        """Mostrar opciones de alimentos para que el usuario elija, priorizando alimentos 'raw'"""
+        
+        # PRIORIZAR: Foundation + Raw dentro de Foundation + Raw dentro de Legacy + Otros
+        def prioritize_foundation_and_raw(food_list):
+            """Priorizar Foundation primero, luego Raw dentro de cada tipo"""
+            foundation_raw = []
+            foundation_other = []
+            legacy_raw = []
+            legacy_other = []
+            
+            for food in food_list:
+                description = food.get('description', '').lower()
+                is_raw = 'raw' in description
+                
+                # Detectar si es Foundation o Legacy por el tipo de datos
+                # Foundation suele tener descripciones más simples y directas
+                # Legacy suele tener descripciones más largas o específicas
+                is_foundation = len(description.split()) <= 8  # Descripciones Foundation son más cortas
+                
+                if is_foundation:
+                    if is_raw:
+                        foundation_raw.append(food)
+                    else:
+                        foundation_other.append(food)
+                else:
+                    if is_raw:
+                        legacy_raw.append(food)
+                    else:
+                        legacy_other.append(food)
+            
+            # Orden de prioridad: Foundation Raw → Foundation Other → Legacy Raw → Legacy Other
+            return foundation_raw + foundation_other + legacy_raw + legacy_other
+        
+        # Aplicar priorización y tomar los primeros 10
+        prioritized_foods = prioritize_foundation_and_raw(foods)[:10]
         
         options = []
-        for i, food in enumerate(foods[:10]):  # Máximo 10 opciones
+        for i, food in enumerate(prioritized_foods):
             # Obtener información nutricional básica
             nutrition = self._extract_nutrition_data(food, 100)  # Por 100g
             
             # Traducir descripción al español usando OpenAI
             spanish_description = self.translation_service.translate_to_spanish(food.get('description', ''))
             display_name = spanish_description if spanish_description else food.get('description', 'Sin descripción')
+            
+            # Marcar si es alimento "raw" para el usuario
+            is_raw = 'raw' in food.get('description', '').lower()
+            raw_indicator = " 🥩" if is_raw else ""
             
             option_info = {
                 'number': i,
@@ -186,7 +281,8 @@ class NutritionService:
                 'carbs_per_100g': nutrition['carbs'],
                 'fats_per_100g': nutrition['fats'],
                 'food': food,
-                'display_name': f"{display_name} - {nutrition['calories']} cal/100g"
+                'display_name': f"{display_name}{raw_indicator} - {nutrition['calories']} cal/100g",
+                'is_raw': is_raw
             }
             options.append(option_info)
         

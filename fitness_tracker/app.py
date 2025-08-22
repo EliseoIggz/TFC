@@ -1,7 +1,3 @@
-# Limen - Aplicación Principal
-# =====================================
-# Este es el punto de entrada de la aplicación
-
 import sys
 import os
 

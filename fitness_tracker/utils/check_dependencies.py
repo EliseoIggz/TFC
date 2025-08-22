@@ -1,7 +1,3 @@
-# Limen - Verificación de Dependencias
-# =============================================
-# Verifica las dependencias necesarias para el funcionamiento completo
-
 import subprocess
 import sys
 import importlib

@@ -2,13 +2,10 @@ from models.user_model import UserModel
 import logging
 from typing import Dict
 
-# Configurar logging
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-
 class UserController:
-    """Controlador para el perfil del usuario (nombre y peso)."""
+    """Controlador para el perfil del usuario"""
 
     def __init__(self):
         self.user_model = UserModel()
@@ -24,11 +21,11 @@ class UserController:
 
     def save_profile(self, name: str, weight: float, objetivo: str = None):
         try:
+            # Validar input antes de guardar
+            validation = self.validate_profile_input(name, weight)
+            if not validation['valid']:
+                return {"success": False, "message": validation['error']}
 
-            if weight <= 0 or weight > 500:
-                logger.warning(f"Peso inválido: {weight}")
-                return {"success": False, "message": "El peso debe ser un valor válido"}
-            
             result = self.user_model.upsert_profile(name.strip(), float(weight), objetivo)
 
             return {"success": True, "message": "Perfil guardado"}
@@ -36,25 +33,19 @@ class UserController:
             logger.error(f"Error al guardar perfil: {e}")
             return {"success": False, "message": f"Error: {e}"}
     
-    # ========================================
-    # MÉTODOS DE VALIDACIÓN Y ESTADO (RESPETANDO MVC)
-    # ========================================
-    
     def validate_profile_input(self, name: str, weight: float) -> Dict:
-        """
-        Validar input del perfil (RESPETANDO MVC)
-        Retorna: {'valid': bool, 'error': Optional[str]}
-        """
+        """Validar input del perfil"""
         if not name or not name.strip():
             return {
                 'valid': False,
-                'error': '❌ El nombre es requerido'
+                'error': 'El nombre es requerido'
             }
         
-        if weight <= 0 or weight > 500:
+        # Verificar que el peso no sea None, NaN o un valor inválido
+        if weight is None or (isinstance(weight, float) and (weight <= 0 or weight > 500 or weight != weight)):
             return {
                 'valid': False,
-                'error': '❌ El peso debe estar entre 1 y 500 kg'
+                'error': 'El peso debe ser un valor válido entre 1 y 500 kg'
             }
         
         return {
@@ -63,10 +54,7 @@ class UserController:
         }
     
     def get_profile_display_data(self, profile: Dict) -> Dict:
-        """
-        Preparar datos del perfil para mostrar en la vista (RESPETANDO MVC)
-        Retorna: {'success': bool, 'data': Dict}
-        """
+        """Preparar datos del perfil para mostrar en la vista"""
         try:
             if not profile:
                 return {
@@ -106,10 +94,7 @@ class UserController:
         return objetivo_map.get(objetivo, objetivo)
     
     def get_objetivo_options(self) -> Dict:
-        """
-        Obtener opciones de objetivo formateadas (RESPETANDO MVC)
-        Retorna: {'success': bool, 'data': Dict}
-        """
+        """Obtener opciones de objetivo formateadas"""
         options = [
             "mantener_peso",
             "perdida_grasa",

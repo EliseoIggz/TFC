@@ -1,16 +1,11 @@
-# Limen - Servicio de Deportes
-# =====================================
-# Este archivo calcula calorías quemadas en actividades deportivas
-
 import config
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List
 
 class TrainingService:
     """Servicio para calcular calorías quemadas en actividades deportivas"""
     
     def __init__(self):
-        """Inicializar el servicio de deportes"""
-        # Base de datos local de deportes y ejercicios con METs reales (SOLO EN ESPAÑOL)
+        # Base de datos local de deportes y ejercicios con METs reales
         self.sports_database = {
             # DEPORTES DE EQUIPO
             'fútbol': {'name': 'Fútbol', 'met': 8.0, 'category': 'deporte_equipo'},

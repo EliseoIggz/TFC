@@ -1,13 +1,8 @@
-# Limen - Servicio de Traducción OpenAI
-# ==============================================
-# Este archivo maneja las traducciones usando OpenAI GPT
-
 import openai
 import config
 import logging
 from typing import Optional
 
-# Configurar logging
 logger = logging.getLogger(__name__)
 
 class TranslationService:
@@ -43,11 +38,11 @@ class TranslationService:
                 messages=[
                     {
                         "role": "system", 
-                        "content": "Eres un traductor profesional español-inglés. Traduce solo el texto proporcionado, sin añadir explicaciones ni contexto adicional."
+                        "content": "Eres un traductor especializado en alimentos y nutrición. Traduce exclusivamente nombres de alimentos del español al inglés usando la terminología de EEUU. Para carnes: ternera=beef, pollo=chicken, cerdo=pork, cordero=lamb. Para pescados: atún=tuna, salmón=salmon. Para verduras: zanahoria=carrot, lechuga=lettuce. No agregues descripciones ni contexto adicional. Solo la traducción directa del alimento."
                     },
                     {
                         "role": "user", 
-                        "content": f"Traduce al inglés: {spanish_text}"
+                        "content": f"Traduce: {spanish_text}"
                     }
                 ],
                 max_tokens=100,
@@ -94,11 +89,11 @@ class TranslationService:
                 messages=[
                     {
                         "role": "system", 
-                        "content": "Eres un traductor profesional inglés-español. Traduce solo el texto proporcionado, sin añadir explicaciones ni contexto adicional."
+                        "content": "Eres un traductor especializado en alimentos y nutrición. Traduce exclusivamente nombres de alimentos del inglés al español utilizando el término genérico más usado en países hispanohablantes. No agregues descripciones, adjetivos ni contexto adicional. Si el alimento tiene varias traducciones, elige la más común y entendible en todo el mundo hispano."
                     },
                     {
                         "role": "user", 
-                        "content": f"Traduce al español: {english_text}"
+                        "content": f"Traduce: {english_text}"
                     }
                 ],
                 max_tokens=100,

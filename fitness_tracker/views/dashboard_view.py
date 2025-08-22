@@ -1,4 +1,3 @@
-# Limen - Vista del Dashboard
 import streamlit as st
 import plotly.graph_objects as go
 from datetime import date
@@ -6,8 +5,9 @@ import base64
 from controllers.training_controller import TrainingController
 from controllers.nutrition_controller import NutritionController
 from controllers.user_controller import UserController
+from controllers.statistics_controller import StatisticsController
 import config
-from utils.helpers import format_date, format_date_display
+from utils.helpers import format_date, format_date_display, show_success_message
 
 class DashboardView:
     """Vista principal del dashboard"""
@@ -17,6 +17,10 @@ class DashboardView:
         self.training_controller = TrainingController()
         self.nutrition_controller = NutritionController(training_controller=self.training_controller)
         self.user_controller = UserController()
+        self.statistics_controller = StatisticsController(
+            nutrition_controller=self.nutrition_controller,
+            training_controller=self.training_controller
+        )
         
         st.set_page_config(
             page_title="Limen - Fitness Tracker",
@@ -27,24 +31,31 @@ class DashboardView:
     
     def render(self):
         """Renderizar dashboard completo"""
-        # Solo el título
-        st.title("Limen")
-        
-        st.markdown("**Seguimiento de entrenamientos y nutrición**")
-        
         self._init_user_profile()
         self._render_header()
         
         with st.sidebar:
-            # Logo centrado en la parte superior del sidebar
+            # TÍTULO "LIMEN" CON FUENTE CASLON ANTIQUE
             st.markdown("""
             <div style="text-align: center; margin-bottom: 20px;">
-                <img src="data:image/png;base64,{}" width="80" style="margin: 0 auto;">
+                <h1 style="font-family: 'Caslon Antique', serif; font-size: 2.5rem; color: white; margin: 0; padding: 0;">
+                    Limen
+                </h1>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Logo centrado en la parte superior del sidebar (AUMENTADO)
+            st.markdown("""
+            <div style="text-align: center; margin-bottom: 20px;">
+                <img src="data:image/png;base64,{}" width="120" style="margin: 0 auto;">
             </div>
             """.format(self._get_image_base64("assets/images/logo_sharp.png")), unsafe_allow_html=True)
             
             self._render_profile_form()
             self._render_input_forms()
+        
+        # Descripción principal en el área central
+        st.markdown("**Seguimiento de entrenamientos y nutrición**")
         
         self._render_main_content()
     
@@ -86,7 +97,7 @@ class DashboardView:
         
         # Mostrar mensaje de actualización
         if st.session_state.get('profile_updated'):
-            st.success("✅ Perfil actualizado automáticamente")
+            show_success_message("Perfil actualizado")
             del st.session_state.profile_updated
         
         # Inputs de perfil
@@ -118,8 +129,8 @@ class DashboardView:
         
         # Mostrar saludo
         if user_name:
-            st.success(f"👋 ¡Hola {user_name}!")
-            st.info(f"⚖️ Tu peso: {st.session_state.get('user_weight', 70.0)} kg")
+            show_success_message(f"¡Hola {user_name}!")
+            st.info(f"Tu peso: {st.session_state.get('user_weight', 70.0)} kg")
     
     def _render_input_forms(self):
         """Renderizar formularios de entrada"""
@@ -157,6 +168,9 @@ class DashboardView:
         search_placeholder.empty()
         
         if result['success']:
+            # Mostrar mensaje de éxito cuando se añade directamente
+            show_success_message(f"{result['message']}")
+            
             st.session_state.update({
                 'meal_added': True,
                 'meal_message': result['message']
@@ -180,12 +194,10 @@ class DashboardView:
         data = selector_vm['selector_data']
         st.info(f"🔍 Se encontraron {data['options_count']} opciones para '{data['search_term']}'")
         
-        # Botón cancelar
-        col1, col2 = st.columns([1, 4])
-        with col1:
-            if st.button("❌ Cancelar", key="cancel_food_selection"):
-                self._clear_food_selection()
-                st.rerun()
+        # Botón cancelar - Sin limitaciones de columnas para que no se corte el texto
+        if st.button("❌ Cancelar", key="cancel_food_selection"):
+            self._clear_food_selection()
+            st.rerun()
         
         # Selector de opciones
         select_key = f"food_selector_{data['search_term']}_{id(data['search_term'])}"
@@ -219,7 +231,7 @@ class DashboardView:
                     name = nutrient.replace('_per_100g', '').replace('carbs', 'carbohidratos').replace('proteins', 'proteínas').replace('fats', 'grasas')
                     st.info(f"{emoji} **{name.title()}:** {option[nutrient]}g/100g")
         
-        st.success(f"🧮 **Total:** {option['calories_per_100g']} cal/100g × {options_data['grams']}g")
+        st.info(f"🧮 **Total:** {option['calories_per_100g']} cal/100g × {options_data['grams']}g")
         
         # Botón confirmar
         confirm_key = f"{selector_data['confirm_key']}_{selected_index}"
@@ -231,7 +243,7 @@ class DashboardView:
         result = self.nutrition_controller.get_food_selection_result(options_data, selected_index)
         
         if result['success']:
-            st.success(result['message'])
+            show_success_message(result['message'])
             if result.get('should_clear_selector'):
                 self._clear_food_selection()
             st.session_state.update({
@@ -274,7 +286,7 @@ class DashboardView:
         selected_category = st.selectbox("🏷️ Categoría de Deporte:", 
                                        options=categories['options'],
                                        format_func=categories['format_func'],
-                                       index=st.session_state.get('training_category_index', 1),
+                                       index=0,  # Siempre empezar con "Todas" (primer índice)
                                        key="training_category_selector")
         
         # 2. Deporte
@@ -282,10 +294,11 @@ class DashboardView:
         
         # 3. Minutos
         minutes_input = st.text_input("⏱️ Minutos", 
-                                    value=st.session_state.get('training_minutes', ''),
-                                    placeholder="Introduce el tiempo",
-                                    help="Valor entre 1 y 1440 minutos",
-                                    key="training_minutes_input")
+                                     value="",  # Siempre empezar vacío
+                                     placeholder="Introduce el tiempo",
+                                     help="Valor entre 1 y 1440 minutos",
+                                     key="training_minutes_input",
+                                     autocomplete="off")
         
         # Generar ViewModel completo
         vm = self.training_controller.get_training_form_viewmodel(minutes_input, selected_sport, user_weight)
@@ -297,11 +310,15 @@ class DashboardView:
     
     def _render_sport_selector(self, sports_data, selected_category):
         """Renderizar selector de deportes"""
-        if not selected_category or selected_category == '':
-            return ""
-        
+        # SIEMPRE mostrar el selector de deportes
         all_sports = sports_data['all_sports']
-        available_sports = all_sports if selected_category == 'Todas' else [s for s in all_sports if s['category'] == selected_category]
+        
+        # Si la categoría es "Todas", mostrar todos los deportes
+        if selected_category == 'Todas':
+            available_sports = all_sports
+        else:
+            # Filtrar por categoría específica
+            available_sports = [s for s in all_sports if s['category'] == selected_category]
         
         if not available_sports:
             st.warning("No hay deportes disponibles en esta categoría")
@@ -318,6 +335,8 @@ class DashboardView:
         
         return sport_options.get(selected_sport_key, "")
     
+    
+    
     def _render_training_validation_and_submit(self, form_data, selected_sport, user_weight):
         """Validación y envío de entrenamiento"""
         validation = form_data['validation']
@@ -328,11 +347,11 @@ class DashboardView:
         
         # Mostrar mensaje de éxito
         if st.session_state.get('training_success_message'):
-            st.success(st.session_state['training_success_message'])
+            show_success_message(st.session_state['training_success_message'])
             del st.session_state['training_success_message']
         
-        # Preview
-        if form_data['preview']:
+        # Preview (solo mostrar si no hay mensaje de éxito)
+        if form_data['preview'] and not st.session_state.get('training_success_message'):
             preview = form_data['preview']
             st.info(preview['display_text'])
             st.info(preview['calories_text'])
@@ -345,12 +364,15 @@ class DashboardView:
                 
                 if result['success']:
                     st.session_state['training_success_message'] = result['message']
-                    if result.get('should_clear_form') and 'clear_form_data' in result:
-                        clear_data = result['clear_form_data']
-                        st.session_state.update({
-                            'training_category_index': clear_data.get('category_index', 1),
-                            'training_minutes': clear_data.get('minutes', '')
-                        })
+                    
+                    # Limpiar valores de los selectores para que vuelvan a valores predeterminados
+                    if 'training_category_selector' in st.session_state:
+                        del st.session_state['training_category_selector']
+                    if 'training_sport_selector' in st.session_state:
+                        del st.session_state['training_sport_selector']
+                    if 'training_minutes_input' in st.session_state:
+                        del st.session_state['training_minutes_input']
+                    
                     if result.get('should_rerun'):
                         st.rerun()
                 else:
@@ -361,15 +383,7 @@ class DashboardView:
                 if not validation['minutes']:
                     st.warning("❌ Por favor especifica una cantidad válida de minutos")
         
-        # Estadísticas
-        st.divider()
-        st.markdown("**📊 Estadísticas de la Base de Datos:**")
-        stats = form_data['stats']
-        col1, col2 = st.columns(2)
-        with col1:
-            st.metric("Total Deportes", stats['total_sports'])
-        with col2:
-            st.metric("Total Categorías", stats['total_categories'])
+
     
     def _render_main_content(self):
         """Contenido principal del dashboard"""
@@ -390,54 +404,46 @@ class DashboardView:
         st.subheader(title)
         
         today_str = today.strftime('%Y-%m-%d')
-        nutrition_vm = self.nutrition_controller.get_nutrition_stats_viewmodel(today_str)
-        training_vm = self.training_controller.get_training_stats_viewmodel(today_str)
+        chart_data = self.statistics_controller.get_chart_data_for_date(today_str)
         
-        if nutrition_vm['success'] and training_vm['success']:
-            calories_consumed = nutrition_vm['display_data']['calories']
-            calories_burned = training_vm['display_data']['total_calories_burned']
-            
-            if calories_consumed > 0 or calories_burned > 0:
-                fig = go.Figure(data=[
-                    go.Bar(name='Consumidas', x=['Calorías'], y=[calories_consumed], marker_color='#45B7D1'),
-                    go.Bar(name='Quemadas', x=['Calorías'], y=[calories_burned], marker_color='#FF6B6B')
-                ])
-                fig.update_layout(
-                    title=f"Calorías de {today_display}" if today_display == "hoy" else f"Calorías del {today_display}",
-                    barmode='group', height=config.CHART_HEIGHT, showlegend=True
-                )
-                st.plotly_chart(fig, use_container_width=True)
-            else:
-                st.info("No hay datos para mostrar")
+        if chart_data['success'] and chart_data['data']['has_data']:
+            data = chart_data['data']
+            fig = go.Figure(data=[
+                go.Bar(name='Consumidas', x=['Calorías'], y=[data['calories_consumed']], marker_color='#45B7D1'),
+                go.Bar(name='Quemadas', x=['Calorías'], y=[data['calories_burned']], marker_color='#FF6B6B')
+            ])
+            fig.update_layout(
+                title=f"Calorías de {today_display}" if today_display == "hoy" else f"Calorías del {today_display}",
+                barmode='group', height=config.CHART_HEIGHT, showlegend=True
+            )
+            st.plotly_chart(fig, use_container_width=True)
         else:
             st.info("No hay datos para mostrar")
     
     def _render_daily_stats(self):
         """Estadísticas diarias"""
         today = date.today().strftime('%Y-%m-%d')
-        nutrition_vm = self.nutrition_controller.get_nutrition_stats_viewmodel(today)
-        training_vm = self.training_controller.get_training_stats_viewmodel(today)
+        daily_summary = self.statistics_controller.get_daily_summary(today)
         
+        if not daily_summary['success']:
+            st.error("Error al cargar estadísticas del día")
+            return
+        
+        data = daily_summary['data']
         col1, col2 = st.columns(2)
         
         with col1:
             st.markdown("**🍽️ Nutrición del Día**")
-            if nutrition_vm['success']:
-                data = nutrition_vm['display_data']
-                for label, key in [("Calorías Consumidas", "calories_formatted"), ("Proteínas", "proteins_formatted"),
-                                 ("Carbohidratos", "carbs_formatted"), ("Grasas", "fats_formatted")]:
-                    st.metric(label, data[key])
-            else:
-                st.info("No hay datos nutricionales para hoy")
+            nutrition_data = data['nutrition']
+            for label, key in [("Calorías Consumidas", "calories_formatted"), ("Proteínas", "proteins_formatted"),
+                             ("Carbohidratos", "carbs_formatted"), ("Grasas", "fats_formatted")]:
+                st.metric(label, nutrition_data[key])
         
         with col2:
             st.markdown("**🏃‍♂️ Entrenamiento del Día**")
-            if training_vm['success']:
-                data = training_vm['display_data']
-                st.metric("Calorías Quemadas", data['calories_formatted'])
-                st.metric("Minutos Activo", data['minutes_formatted'])
-            else:
-                st.info("No hay datos de entrenamiento para hoy")
+            training_data = data['training']
+            st.metric("Calorías Quemadas", training_data['calories_formatted'])
+            st.metric("Minutos Activo", training_data['minutes_formatted'])
     
     def _render_recent_records(self):
         """Registros por fecha"""
@@ -464,7 +470,7 @@ class DashboardView:
     def _render_balance_tab(self, selected_date):
         """Balance calórico"""
         date_str = selected_date.strftime('%Y-%m-%d')
-        balance_result = self.nutrition_controller.get_calories_balance(date_str)
+        balance_result = self.statistics_controller.get_daily_calories_balance(date_str)
         
         date_display = format_date_display(selected_date)
         title = f"⚖️ Balance Calórico de {date_display}" if date_display == "hoy" else f"⚖️ Balance Calórico del {date_display}"
@@ -516,7 +522,7 @@ class DashboardView:
                     delete_result = getattr(controller, delete_method)(row_data['id'])
                     
                     if delete_result['feedback_type'] == 'success':
-                        st.success(delete_result['message'])
+                        show_success_message(delete_result['message'])
                     else:
                         st.error(delete_result['message'])
                     
@@ -529,7 +535,8 @@ class DashboardView:
         
         # Mensaje de actualización
         if st.session_state.get('objetivo_updated'):
-            st.success("✅ Objetivo actualizado correctamente")
+            from utils.helpers import show_success_message
+            show_success_message("Objetivo actualizado correctamente")
             del st.session_state.objetivo_updated
         
         # Selector de objetivo
@@ -564,18 +571,18 @@ class DashboardView:
         
         # Gráficas
         today = date.today().strftime('%Y-%m-%d')
-        nutrition_vm = self.nutrition_controller.get_nutrition_stats_viewmodel(today)
+        macros_data = self.statistics_controller.get_macros_distribution(today)
         
         col1, col2 = st.columns(2)
         
         with col1:
             st.markdown("**📊 Distribución Actual**")
-            if nutrition_vm['success']:
-                data = nutrition_vm['display_data']
+            if macros_data['success'] and macros_data['data']['has_data']:
+                data = macros_data['data']['distribution']
                 fig = go.Figure(data=[go.Pie(
-                    labels=['Proteínas', 'Carbohidratos', 'Grasas'],
-                    values=[data['proteins'], data['carbs'], data['fats']],
-                    hole=0.4, marker_colors=['#FF6B6B', '#FFD93D', '#45B7D1'],
+                    labels=data['chart_data']['labels'],
+                    values=data['chart_data']['values'],
+                    hole=0.4, marker_colors=data['chart_data']['colors'],
                     textinfo='percent', textposition='outside'
                 )])
                 fig.update_layout(title=f"Consumido el {format_date(date.today())}", 

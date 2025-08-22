@@ -1,195 +1,132 @@
-# Limen
+# Limen - Fitness Tracker Inteligente
 
-**Seguimiento de entrenamientos y nutrición con dashboard web**
+**Seguimiento completo de entrenamientos y nutrición con dashboard web interactivo**
 
-Una aplicación Python completa para registrar y analizar tu actividad física y alimentación. Desarrollada siguiendo el patrón MVC con Streamlit para la interfaz y SQLite para la base de datos local.
+Aplicación Python moderna para registrar y analizar actividad física y alimentación. Desarrollada con arquitectura MVC, Streamlit para la interfaz web y SQLite para persistencia local.
 
 ## Características Principales
 
-- **Registro de Comidas**: Añade alimentos y obtén información nutricional automática desde la base de datos oficial del USDA
-- **Seguimiento de Entrenamientos**: Registra actividades físicas y calcula calorías quemadas con base de datos local de 251 deportes
-- **Traducción Automática**: Búsqueda de alimentos en español con traducción automática a inglés para la API del USDA
-- **Dashboard Interactivo**: Visualiza tu progreso con gráficas y estadísticas en tiempo real
-- **Base de Datos Local**: Almacena todos tus datos en SQLite sin dependencias externas
-- **Interfaz Web**: Dashboard responsive con Streamlit
+- **Registro de Comidas**: Búsqueda inteligente con traducción automática español-inglés usando OpenAI GPT
+- **Seguimiento de Entrenamientos**: 135 deportes organizados en 19 categorías con cálculo automático de calorías basandose en los valores MET (Metabolic Equivalent of Task)
+- **Dashboard Interactivo**: Gráficas y estadísticas en tiempo real con base de datos local
+- **Funcionalidad Offline**: Deportes y cálculos disponibles sin conexión a internet
 
 ## Sistema de Nutrición
 
 ### USDA FoodData Central
-- Base de datos oficial del gobierno de Estados Unidos
-- Más de 300,000 alimentos con información nutricional precisa
-- Datos verificados y actualizados regularmente
-- Información detallada: macronutrientes, vitaminas, minerales
+- Base de datos oficial del gobierno de Estados Unidos con 300,000+ alimentos
+- Información nutricional completa y verificada
+- Búsqueda híbrida: Foundation (materias primas) + Legacy (secundaria)(más opciones sobre registros antiguos)
 
 ### Traducción Automática
-- Traducción español-inglés automática usando OpenAI
-- Detección inteligente del idioma de entrada
-- Búsqueda bilingüe transparente para el usuario
-- Servicio premium con alta precisión y confiabilidad
+- API de OpenAI para terminología nutricional específica
+- Entrada en español, búsqueda en la API de USDA en inglés, resultados en español
 
-### Cómo Funciona
-1. El usuario escribe el nombre del alimento en español
-2. El sistema detecta el idioma y traduce automáticamente a inglés
-3. Se busca en la base de datos oficial del USDA
-4. Los resultados se traducen de vuelta al español
-5. El usuario selecciona la opción específica y se registra
-
-
-## Sistema de Deportes
+## Sistema de Entrenamientos
 
 ### Base de Datos Local
-- **251 deportes y actividades** disponibles sin conexión a internet
-- **19 categorías** organizadas profesionalmente
-- **Valores MET precisos** basados en estudios científicos
+- **135 deportes** organizados en 19 categorías
+- Valores MET (Metabolic Equivalent of Task) precisos basados en estudios científicos
+- Cálculo automático de calorías según peso del usuario, la duración y el MET
 
 ### Categorías Principales
-- Deportes de Equipo, Acuáticos, Invierno, Combate
-- Deportes de Resistencia, Fuerza, Aventura, Baile
-- Deportes de Precisión, Actividades Fitness y más
+- **Deportes de Equipo**: Fútbol, Baloncesto, Voleibol, Rugby...
+- **Deportes Acuáticos**: Natación, Waterpolo, Surf, Buceo...
+- **Deportes de Combate**: Boxeo, Karate, MMA, Judo...
+- **Deportes de Resistencia**: Correr, Ciclismo, Triatlón...
+- **Actividades Fitness**: Yoga, Pilates, Spinning, CrossFit...
 
+## Instalación y Uso
 
+### Ejecución Rápida
+**Doble clic en:** `run_app.bat` (hace todo automáticamente)
 
+### Instalación Manual
+Ver `INSTALACION.md` para pasos detallados.
 
-## Instalación
-
-Ver archivo `instrucciones.md` para pasos detallados de instalación y ejecución.
-
-## Uso de la Aplicación
-
-### Dashboard Principal
-- **Perfil del Usuario**: Configura tu nombre y peso para cálculos personalizados
-- **Registro de Comidas**: Busca alimentos y añade comidas con información nutricional completa
-- **Registro de Entrenamientos**: Selecciona deportes de la base de datos y registra tu actividad
-- **Estadísticas**: Visualiza tu balance calórico, macronutrientes y actividad física
-
-### Búsqueda de Alimentos
-1. Escribe el nombre del alimento en español o inglés
-2. El sistema traduce automáticamente y busca en la base de datos del USDA
-3. Selecciona la opción específica de la lista de resultados
-4. Especifica la cantidad en gramos
-5. La comida se registra automáticamente con toda la información nutricional
-
-### Registro de Entrenamientos
-1. Selecciona la categoría de deporte
-2. Elige el deporte específico de la lista
-3. Especifica la duración en minutos
-4. El sistema calcula automáticamente las calorías quemadas basándose en tu peso
-5. El entrenamiento se registra en tu historial
+### Uso Básico
+1. **Perfil**: Configura nombre, peso y objetivo(en dashboard)
+2. **Comidas**: Busca alimentos en español, selecciona opción, especifica gramos
+3. **Entrenamientos**: Elige categoría, deporte, duración y confirma
+4. **Dashboard**: Visualiza balance calórico, macronutrientes y estadísticas
 
 ## Arquitectura del Proyecto
 
+### Estructura MVC
 ```
 fitness_tracker/
-├── controllers/           # Lógica de negocio
-│   ├── nutrition_controller.py    # Controlador de nutrición
-│   ├── training_controller.py     # Controlador de entrenamiento
-│   └── user_controller.py         # Controlador de usuario
-├── data/                 # Base de datos
-│   └── fitness_tracker.db   # Base de datos SQLite
-├── models/               # Modelos de datos
-│   ├── database.py          # Conexión a base de datos
-│   ├── nutrition_model.py   # Modelo de nutrición
-│   ├── training_model.py    # Modelo de entrenamiento
-│   └── user_model.py        # Modelo de usuario
-├── services/             # Servicios y APIs
-│   ├── nutrition_api.py     # API de nutrición USDA
-│   ├── openai_translation_service.py # Servicio de traducción OpenAI
-│   └── training.py          # Servicio de deportes (base local)
-├── views/                # Interfaces de usuario
-│   └── dashboard_view.py    # Vista del dashboard
-├── utils/                # Utilidades
-│   ├── check_dependencies.py # Verificación de dependencias
-│   └── helpers.py           # Funciones auxiliares
-├── tests/                # Pruebas unitarias
-├── app.py                   # Aplicación principal
-├── config.py                # Configuración
-└── requirements.txt         # Dependencias
+├── controllers/           # Lógica de negocio y ViewModels
+├── models/               # Persistencia SQLite
+├── services/             # APIs externas y lógica de dominio
+├── views/                # Interfaz Streamlit
+├── utils/                # Utilidades y helpers
+└── tests/                # Pruebas unitarias
 ```
 
-## Rendimiento del Sistema
+### Tecnologías
+- **Frontend**: Streamlit (dashboard web responsive)
+- **Backend**: Python con patrón MVC
+- **Base de datos**: SQLite local
+- **APIs externas**: USDA FoodData Central, OpenAI GPT
 
-- Funciona offline para funcionalidades básicas
-- Búsqueda eficiente en bases de datos locales
-- Código limpio y mantenible
+## Configuración y APIs
 
-## Casos de Uso
+### Límites de API
+- **USDA**: 3,600 peticiones/día (sin key) / 10,000 (con key **Actual**)
+- **OpenAI**: Según plan de suscripción
 
-### Uso Actual (Entorno Local)
-- **Seguimiento personal**: Registro individual de comidas y entrenamientos
-- **Dashboard privado**: Visualización de progreso personal
-- **Base de datos local**: Almacenamiento en SQLite del usuario
+### Configuración
+- **USDA API Key**: En `config.py` para mayor límite de peticiones
+- **OpenAI API Key**: En `config.py` para traducción automática
 
-### Escalabilidad Futura
-El sistema está diseñado para poder escalar a un entorno de producción:
-
-- **Despliegue en servidor**: La arquitectura MVC permite migrar a un servidor web
-- **Base de datos multi-usuario**: Cambiar SQLite por PostgreSQL o MySQL
-- **Sistema de autenticación**: Implementar login y gestión de usuarios
-- **API REST**: Exponer funcionalidades como servicio web
-- **Aplicación web**: Acceso desde cualquier dispositivo con navegador
-- **Aplicación móvil**: Crear apps nativas usando la API del servidor
-
-### Aplicaciones Potenciales
-- **Gimnasios**: Seguimiento de clientes y planificación de entrenamientos
-- **Entrenadores personales**: Gestión de múltiples clientes
-- **Centros deportivos**: Control de actividades y estadísticas
-- **Aplicaciones de fitness**: Integración con wearables y apps móviles
-
-## Personalización
-
-### Agregar Nuevos Deportes
-```python
-# En services/training.py, agregar a sports_database
-'nombre_deporte': {
-    'name': 'Nombre del Deporte',
-    'met': 7.0,  # Valor MET del deporte
-    'category': 'categoria_deporte'
-}
-```
-
-### Modificar Valores MET
-```python
-# Cambiar el valor MET de un deporte existente
-self.sports_database['futbol']['met'] = 8.5
-```
-
-## Testing
-
-### Probar la Base de Deportes
-```bash
-cd fitness_tracker
-python tests/test_expanded_sports.py
-```
-
-### Probar el Sistema de Nutrición
-```bash
-python tests/test_usda_nutrition.py
-```
-
-### Probar Funcionalidades Básicas
-```python
-# Probar cálculo de calorías
-from services.training import Training
-api = Training()
-calories = api.get_calories_burned('fútbol', 30, 70)
-print(f'Calorías: {calories}')
-```
-
-## Consideraciones Importantes
-
-### Límites de las APIs
-- **USDA sin API Key**: 3,600 peticiones por día
-- **USDA con API Key**: 10,000 peticiones por día
-- **OpenAI**: Límites según tu plan de suscripción
-
-### Dependencias de Internet
-- **USDA API**: Requiere conexión a internet
-- **OpenAI**: Requiere conexión a internet
-- **Sistema offline**: Funciona para datos ya cargados y cálculos de deportes
+### Dependencias y Limitaciones
+- **USDA API**: Requerida para búsqueda de alimentos (sin conexión = no funciona nutrición)
+- **OpenAI API**: Requerida para traducción automática (sin conexión = búsqueda manual en inglés)
+- **Sistema offline**: Solo funciona para deportes y cálculos locales
 
 ## Estadísticas del Sistema
 
-- **Total de deportes**: 251 actividades
-- **Categorías de deportes**: 19 tipos diferentes
-- **Alimentos disponibles**: 300,000+ en base de datos USDA
-- **Rango de METs**: 1.5 - 12.0
+- **Deportes**: 135 actividades físicas (MET: 1.5 - 12.0)
+- **Alimentos**: 300,000+ en base USDA
+- **Categorías**: 19 tipos de deportes organizados
+- **Funcionalidades**: Dashboard interactivo, cálculos automáticos, historial completo
+
+## Testing
+
+### Ejecutar Pruebas
+```bash
+cd fitness_tracker
+python -m pytest tests/
+```
+
+### Pruebas Específicas
+- `test_expanded_sports.py` - Base de deportes
+- `test_usda_nutrition.py` - Sistema de nutrición
+- `test_openai_integration.py` - Integración OpenAI
+- `test_training.py` - Funcionalidades básicas
+
+## Escalabilidad
+
+### Uso Actual
+- Seguimiento personal con dashboard privado
+- Base de datos local SQLite
+- Funcionalidad offline completa
+
+### Escalabilidad Futura
+- Migración a servidor web (arquitectura MVC preparada)
+- Base de datos multi-usuario (PostgreSQL/MySQL)
+- Sistema de autenticación y API REST
+- Aplicación web y móvil
+
+## Documentación
+
+- **README**: Información general y uso básico
+- **[Documentación Técnica](DOCUMENTACION_TECNICA.md)**: Detalles de implementación para desarrolladores
+
+
+### Desarrollo Local
+1. Clona el repositorio
+2. `python -m venv venv`
+3. `venv\Scripts\activate` (Windows) / `source venv/bin/activate` (Linux/Mac)
+4. `pip install -r requirements.txt`
+5. `streamlit run app.py`

@@ -1,6 +1,4 @@
-# Limen - Configuración general
-# ======================================
-# Este archivo contiene configuraciones básicas de la aplicación
+
 
 # Configuración de la base de datos
 DATABASE_NAME = "fitness_tracker.db"

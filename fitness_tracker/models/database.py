@@ -1,7 +1,3 @@
-# Limen - Conexión a la base de datos
-# =============================================
-# Este archivo maneja la conexión a SQLite y crea las tablas necesarias
-
 import sqlite3
 import os
 from datetime import datetime
@@ -72,10 +68,6 @@ class Database:
         except sqlite3.OperationalError:
             # La columna ya existe, no hacer nada
             pass
-        
-
-        
-
         
         self.conn.commit()
     

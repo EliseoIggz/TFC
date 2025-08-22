@@ -30,7 +30,7 @@ if errorlevel 1 (
     echo.
     echo Refrescando variables de entorno...
     
-    :: Intentar usar refreshenv si está disponible (Chocolatey)
+    :: Intentar usar refreshenv si está disponible
     call refreshenv 2>nul
     if errorlevel 1 (
         echo Refrescando PATH manualmente...

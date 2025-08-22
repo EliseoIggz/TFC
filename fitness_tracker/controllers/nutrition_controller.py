@@ -1,8 +1,4 @@
-# Limen - Controlador de Nutrición
-# =========================================
-# Este archivo maneja la lógica de negocio para comidas
-
-from typing import Dict, Optional, List
+from typing import Dict
 from models.nutrition_model import NutritionModel
 from services.nutrition_api import NutritionService
 import pandas as pd
@@ -11,7 +7,6 @@ class NutritionController:
     """Controlador para manejar la lógica de nutrición"""
     
     def __init__(self, training_controller=None):
-        """Inicializar el controlador"""
         self.nutrition_model = NutritionModel()
         self.nutrition_api = NutritionService()
         self.training_controller = training_controller
