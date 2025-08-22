@@ -250,23 +250,26 @@ class DashboardView:
         
         form_data = initial_vm['form_data']
         
+        # Generar claves únicas para forzar recreación de widgets
+        form_counter = st.session_state.get('training_form_counter', 0)
+        
         # 1. Categoría
         categories = form_data['categories']
         selected_category = st.selectbox("🏷️ Categoría de Deporte:", 
                                        options=categories['options'],
                                        format_func=categories['format_func'],
                                        index=0,  # Siempre empezar con "Todas" (primer índice)
-                                       key="training_category_selector")
+                                       key=f"training_category_selector_{form_counter}")
         
         # 2. Deporte
-        selected_sport = self._render_sport_selector(form_data['sports'], selected_category)
+        selected_sport = self._render_sport_selector(form_data['sports'], selected_category, form_counter)
         
         # 3. Minutos
         minutes_input = st.text_input("⏱️ Minutos", 
                                      value="",  # Siempre empezar vacío
                                      placeholder="Introduce el tiempo",
                                      help="Valor entre 1 y 1440 minutos",
-                                     key="training_minutes_input",
+                                     key=f"training_minutes_input_{form_counter}",
                                      autocomplete="off")
         
         # Generar ViewModel completo
@@ -277,7 +280,7 @@ class DashboardView:
         
         self._render_training_validation_and_submit(vm['form_data'], selected_sport, user_weight)
     
-    def _render_sport_selector(self, sports_data, selected_category):
+    def _render_sport_selector(self, sports_data, selected_category, form_counter=0):
         """Renderizar selector de deportes"""
         # SIEMPRE mostrar el selector de deportes
         all_sports = sports_data['all_sports']
@@ -300,7 +303,7 @@ class DashboardView:
                                         options=sport_options_list,
                                         format_func=lambda x: "Escoge un deporte" if x == '' else x,
                                         help="Selecciona el deporte que realizaste",
-                                        key="training_sport_selector")
+                                        key=f"training_sport_selector_{form_counter}")
         
         return sport_options.get(selected_sport_key, "")
     
@@ -325,32 +328,42 @@ class DashboardView:
             st.info(preview['display_text'])
             st.info(preview['calories_text'])
         
-        # Botón enviar
-        if st.button("🏃‍♂️ Añadir Entrenamiento", type="primary"):
-            if validation['is_valid']:
-                result = self.training_controller.get_training_form_submission_result(
-                    selected_sport, validation['minutes'], user_weight)
-                
-                if result['success']:
-                    st.session_state['training_success_message'] = result['message']
+        # Botones de acción
+        col1, col2 = st.columns([3, 1])
+        
+        with col1:
+            if st.button("🏃‍♂️ Añadir Entrenamiento", type="primary"):
+                if validation['is_valid']:
+                    result = self.training_controller.get_training_form_submission_result(
+                        selected_sport, validation['minutes'], user_weight)
                     
-                    # Limpiar valores de los selectores para que vuelvan a valores predeterminados
-                    if 'training_category_selector' in st.session_state:
-                        del st.session_state['training_category_selector']
-                    if 'training_sport_selector' in st.session_state:
-                        del st.session_state['training_sport_selector']
-                    if 'training_minutes_input' in st.session_state:
-                        del st.session_state['training_minutes_input']
-                    
-                    if result.get('should_rerun'):
-                        st.rerun()
+                    if result['success']:
+                        st.session_state['training_success_message'] = result['message']
+                        
+                        # Incrementar contador para forzar recreación de widgets
+                        st.session_state.training_form_counter = st.session_state.get('training_form_counter', 0) + 1
+                        
+                        if result.get('should_rerun'):
+                            st.rerun()
+                    else:
+                        st.error(result['message'])
                 else:
-                    st.error(result['message'])
-            else:
-                if not selected_sport:
-                    st.warning("❌ Por favor selecciona un deporte")
-                if not validation['minutes']:
-                    st.warning("❌ Por favor especifica una cantidad válida de minutos")
+                    if not selected_sport:
+                        st.warning("❌ Por favor selecciona un deporte")
+                    if not validation['minutes']:
+                        st.warning("❌ Por favor especifica una cantidad válida de minutos")
+        
+        with col2:
+            if st.button("🧹 Limpiar", help="Limpiar selectores y mensajes"):
+                # Limpiar mensaje de éxito
+                if 'training_success_message' in st.session_state:
+                    del st.session_state['training_success_message']
+                
+                # Incrementar contador para forzar recreación de widgets
+                st.session_state.training_form_counter = st.session_state.get('training_form_counter', 0) + 1
+                
+                # Forzar rerun para limpiar la interfaz
+                st.rerun()
         
 
     
