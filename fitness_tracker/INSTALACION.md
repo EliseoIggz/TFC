@@ -2,6 +2,9 @@
 
 ## Ejecución Automática (Recomendado)
 
+**IMPORTANTE**
+-Configurar la Api key de OpenAI, en el archivo config.py. La key esta en el zip enviado APIKEY_OPENAI
+
 **Simplemente haz doble clic en:** `run_app.bat`
 - El script hace todo automáticamente
 - Verifica Python, crea entorno virtual, instala dependencias y ejecuta la app
