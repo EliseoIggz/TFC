@@ -265,6 +265,13 @@ cd fitness_tracker
 python -m pytest tests/
 ```
 
+**Ejecución Automática (Windows)**
+El archivo `run_tests.bat` ejecuta automáticamente todas las pruebas sin intervención manual:
+- Activa el entorno virtual
+- Verifica e instala dependencias si es necesario
+- Ejecuta secuencialmente todos los tests
+- Muestra resultados de cada prueba
+
 ## Mantenimiento y Escalabilidad
 
 ### Agregar Nuevos Deportes
